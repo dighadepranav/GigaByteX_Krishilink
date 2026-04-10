@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class JobModel {
   final String docId;
   final int id;
@@ -56,7 +58,45 @@ class JobModel {
     );
   }
 
+  factory JobModel.fromFirestore(DocumentSnapshot doc) {
+    final json = doc.data() as Map<String, dynamic>;
+    return JobModel(
+      docId: doc.id,
+      id: json['id'] ?? 0,
+      farmerUid: json['farmerUid'] ?? '',
+      farmerId: json['farmer_id'] ?? 0,
+      farmerName: json['farmer_name'] ?? 'Farmer',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      location: json['location'] ?? '',
+      wage: (json['wage'] ?? 0).toDouble(),
+      duration: json['duration'] ?? '1 day',
+      workersNeeded: json['workers_needed'] ?? 1,
+      status: json['status'] ?? 'open',
+      createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      applicationsCount: json['applications_count'],
+      isSaved: json['is_saved'] ?? false,
+      isApplied: json['has_applied'] ?? false,
+    );
+  }
+
   Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'farmer_id': farmerId,
+      'farmer_name': farmerName,
+      'title': title,
+      'description': description,
+      'location': location,
+      'wage': wage,
+      'duration': duration,
+      'workers_needed': workersNeeded,
+      'status': status,
+      'applications_count': applicationsCount ?? 0,
+    };
+  }
+
+  Map<String, dynamic> toFirestore() {
     return {
       'id': id,
       'farmer_id': farmerId,

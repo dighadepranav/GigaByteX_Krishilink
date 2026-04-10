@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class OrderModel {
   final String docId;
   final int id;
@@ -41,6 +43,7 @@ class OrderModel {
     this.deliveryAddress,
   });
 
+
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       docId: json['docId'] ?? '',
@@ -67,6 +70,31 @@ class OrderModel {
     );
   }
 
+  factory OrderModel.fromFirestore(DocumentSnapshot doc) {
+    final json = doc.data() as Map<String, dynamic>;
+    return OrderModel(
+      docId: doc.id,
+      id: json['id'] ?? 0,
+      productDocId: json['productDocId'] ?? '',
+      productName: json['product_name'] ?? 'Product',
+      buyerUid: json['buyerUid'] ?? '',
+      buyerId: json['buyer_id'] ?? 0,
+      buyerName: json['buyer_name'] ?? 'Buyer',
+      farmerUid: json['farmerUid'] ?? '',
+      farmerId: json['farmer_id'] ?? 0,
+      farmerName: json['farmer_name'] ?? 'Farmer',
+      quantity: (json['quantity'] ?? 0).toDouble(),
+      unit: json['unit'] ?? 'kg',
+      price: (json['price'] ?? 0).toDouble(),
+      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
+      status: json['status'] ?? 'pending',
+      trackingStatus: json['trackingStatus'] ?? 'harvested',
+      orderDate: (json['orderDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      deliveredDate: (json['deliveredDate'] as Timestamp?)?.toDate(),
+      deliveryAddress: json['deliveryAddress'],
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -76,6 +104,25 @@ class OrderModel {
       'buyer_id': buyerId,
       'buyer_name': buyerName,
       'farmerUid': farmerUid,
+      'farmer_id': farmerId,
+      'farmer_name': farmerName,
+      'quantity': quantity,
+      'unit': unit,
+      'price': price,
+      'totalAmount': totalAmount,
+      'status': status,
+      'trackingStatus': trackingStatus,
+      'deliveryAddress': deliveryAddress,
+    };
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'id': id,
+      'productDocId': productDocId,
+      'product_name': productName,
+      'buyer_id': buyerId,
+      'buyer_name': buyerName,
       'farmer_id': farmerId,
       'farmer_name': farmerName,
       'quantity': quantity,

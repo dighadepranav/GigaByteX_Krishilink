@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ProductModel {
   final String docId;
   final int id;
@@ -56,7 +58,47 @@ class ProductModel {
     );
   }
 
+  factory ProductModel.fromFirestore(DocumentSnapshot doc) {
+    final json = doc.data() as Map<String, dynamic>;
+    return ProductModel(
+      docId: doc.id,
+      id: json['id'] ?? 0,
+      farmerUid: json['farmerUid'] ?? '',
+      farmerId: json['farmer_id'] ?? 0,
+      farmerName: json['farmer_name'] ?? 'Farmer',
+      name: json['name'] ?? '',
+      quantity: (json['quantity'] ?? 0).toDouble(),
+      unit: json['unit'] ?? 'kg',
+      price: (json['price'] ?? 0).toDouble(),
+      marketPrice: (json['market_price'] ?? 0).toDouble(),
+      description: json['description'],
+      images: json['images'] != null ? List<String>.from(json['images']) : null,
+      status: json['status'] ?? 'available',
+      createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      rating: json['rating']?.toDouble(),
+      totalSold: json['total_sold'],
+    );
+  }
+
   Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'farmer_id': farmerId,
+      'farmer_name': farmerName,
+      'name': name,
+      'quantity': quantity,
+      'unit': unit,
+      'price': price,
+      'market_price': marketPrice,
+      'description': description,
+      'images': images,
+      'status': status,
+      'rating': rating,
+      'total_sold': totalSold,
+    };
+  }
+
+  Map<String, dynamic> toFirestore() {
     return {
       'id': id,
       'farmer_id': farmerId,
