@@ -11,11 +11,19 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.6
   provider: ^6.0.5
+  flutter_animate: ^4.5.0
   shared_preferences: ^2.2.2
   http: ^1.1.0
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
+  fl_chart: ^0.68.0
+  timeline_tile: ^2.0.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+  connectivity_plus: ^5.0.2
+  url_launcher: ^6.2.4
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:
@@ -24,3 +32,18 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/translations/en.json
+    - assets/translations/hi.json
+    - assets/translations/mr.json
+    - assets/images/farmer_placeholder.png
+    - assets/images/logo.png
+    - assets/images/product_placeholder.png
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: 'assets/fonts/Poppins-Regular.ttf'
+        - asset: 'assets/fonts/Poppins-Bold.ttf'
+          weight: 700

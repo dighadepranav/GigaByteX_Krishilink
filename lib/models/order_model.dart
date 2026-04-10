@@ -88,6 +88,50 @@ class OrderModel {
     };
   }
 
+  OrderModel copyWith({
+    String? docId,
+    int? id,
+    String? productDocId,
+    String? productName,
+    String? buyerUid,
+    int? buyerId,
+    String? buyerName,
+    String? farmerUid,
+    int? farmerId,
+    String? farmerName,
+    double? quantity,
+    String? unit,
+    double? price,
+    double? totalAmount,
+    String? status,
+    String? trackingStatus,
+    DateTime? orderDate,
+    DateTime? deliveredDate,
+    String? deliveryAddress,
+  }) {
+    return OrderModel(
+      docId: docId ?? this.docId,
+      id: id ?? this.id,
+      productDocId: productDocId ?? this.productDocId,
+      productName: productName ?? this.productName,
+      buyerUid: buyerUid ?? this.buyerUid,
+      buyerId: buyerId ?? this.buyerId,
+      buyerName: buyerName ?? this.buyerName,
+      farmerUid: farmerUid ?? this.farmerUid,
+      farmerId: farmerId ?? this.farmerId,
+      farmerName: farmerName ?? this.farmerName,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      price: price ?? this.price,
+      totalAmount: totalAmount ?? this.totalAmount,
+      status: status ?? this.status,
+      trackingStatus: trackingStatus ?? this.trackingStatus,
+      orderDate: orderDate ?? this.orderDate,
+      deliveredDate: deliveredDate ?? this.deliveredDate,
+      deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+    );
+  }
+
   bool get isPending => status == 'pending';
   bool get isConfirmed => status == 'confirmed';
   bool get isDelivered => status == 'delivered';

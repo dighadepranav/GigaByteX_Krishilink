@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../models/order_model.dart';
 import 'marketplace_screen.dart';
+import 'tracking_screen.dart';
 
 class BuyerDashboard extends StatefulWidget {
   const BuyerDashboard({super.key});
@@ -177,6 +179,65 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                   fontSize: 16, fontWeight: FontWeight.bold, color: color)),
           Text(label,
               style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+        ],
+      ),
+    );
+  }
+
+  // ignore: unused_element
+  Widget _buildOrderCard(OrderModel order) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(order.productName,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          Text('${order.quantity} ${order.unit} • ${order.farmerName}',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(order.status.toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text('₹${order.totalAmount.toStringAsFixed(0)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          if (order.status != 'delivered' && order.status != 'cancelled')
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => TrackingScreen(order: order)),
+                  ),
+                  icon: const Icon(Icons.location_on, size: 16),
+                  label: const Text('Track Order'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: kBlue,
+                    side: const BorderSide(color: kBlue),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
