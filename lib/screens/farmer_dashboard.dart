@@ -17,7 +17,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   static const kGreenBg = Color(0xFFF1F8E9);
   static const kAmber = Color(0xFFFF8F00);
 
-  // Demo products data
+  int _nextId = 4;
+
   final List<ProductModel> _demoProducts = [
     ProductModel(
       id: 1,
@@ -60,7 +61,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   @override
   void initState() {
     super.initState();
-    _products = _demoProducts;
+    _products = List.from(_demoProducts);
+    _nextId = _products.length + 1;
   }
 
   static const Map<String, String> _cropEmoji = {
@@ -82,6 +84,199 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     return '🥬';
   }
 
+  void _showAddProductDialog() {
+    final nameCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    final marketCtrl = TextEditingController();
+    String unit = 'kg';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboardPadding),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('➕  Add Product',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: kGreen)),
+                  const SizedBox(height: 16),
+                  _inputField(
+                      nameCtrl, 'Product Name', '🌾  e.g. Fresh Tomatoes'),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _inputField(qtyCtrl, 'Quantity', '',
+                              isNumber: true)),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 110,
+                        child: DropdownButtonFormField<String>(
+                          value: unit,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Unit',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 14),
+                          ),
+                          items: ['kg', 'g', 'ton', 'dozen', 'piece', 'liter']
+                              .map((u) =>
+                                  DropdownMenuItem(value: u, child: Text(u)))
+                              .toList(),
+                          onChanged: (v) =>
+                              setSheetState(() => unit = v ?? 'kg'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _inputField(priceCtrl, 'Price (₹)', '',
+                              isNumber: true)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                          child: _inputField(marketCtrl, 'Market Price (₹)', '',
+                              isNumber: true)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (nameCtrl.text.isNotEmpty &&
+                            priceCtrl.text.isNotEmpty &&
+                            marketCtrl.text.isNotEmpty) {
+                          final price = double.tryParse(priceCtrl.text) ?? 0;
+                          final marketPrice =
+                              double.tryParse(marketCtrl.text) ?? price;
+                          final newProduct = ProductModel(
+                            docId: DateTime.now()
+                                .millisecondsSinceEpoch
+                                .toString(),
+                            id: _nextId,
+                            farmerId: 1,
+                            farmerUid: 'farmer_uid',
+                            farmerName: _userName,
+                            name: nameCtrl.text.trim(),
+                            quantity: double.tryParse(qtyCtrl.text) ?? 0,
+                            unit: unit,
+                            price: price,
+                            marketPrice: marketPrice,
+                            description: '',
+                            images: null,
+                            status: 'available',
+                            createdAt: DateTime.now(),
+                          );
+                          setState(() {
+                            _products.insert(0, newProduct);
+                            _nextId++;
+                          });
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('✅ Product added successfully'),
+                                backgroundColor: kGreen,
+                                behavior: SnackBarBehavior.floating),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kGreen,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text('Add Product',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _inputField(TextEditingController ctrl, String label, String hint,
+      {bool isNumber = false}) {
+    return TextFormField(
+      controller: ctrl,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
+    );
+  }
+
+  void _deleteProduct(int index) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: const Text('Are you sure you want to remove this product?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _products.removeAt(index));
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Product removed'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -92,11 +287,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           children: [
             const Icon(Icons.eco, color: Colors.white, size: 26),
             const SizedBox(width: 8),
-            const Text(
-              'KrishiLink',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
+            const Text('KrishiLink',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.white)),
           ],
         ),
         backgroundColor: kGreen,
@@ -116,7 +309,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
       ),
       floatingActionButton: _selectedIndex == 1
           ? FloatingActionButton.extended(
-              onPressed: () {},
+              onPressed: _showAddProductDialog,
               backgroundColor: kGreen,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
@@ -162,17 +355,15 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF1B5E20), kGreen, kGreenLight],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+                  colors: [Color(0xFF1B5E20), kGreen, kGreenLight],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: kGreen.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
+                    color: kGreen.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4))
               ],
             ),
             child: Row(
@@ -180,9 +371,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle),
                   child: const Icon(Icons.agriculture_rounded,
                       size: 34, color: Colors.white),
                 ),
@@ -191,19 +381,15 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Jai Kisan, $_userName! 🌾',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('Jai Kisan, $_userName! 🌾',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Your farm dashboard is ready',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
+                      const Text('Your farm dashboard is ready',
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -214,31 +400,30 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           Row(
             children: [
               Expanded(
-                child: _statCard(
-                    'Products',
-                    '${_products.length}',
-                    Icons.inventory_2_rounded,
-                    kGreen,
-                    isDark ? const Color(0xFF1A2A1A) : kGreenBg),
-              ),
+                  child: _statCard(
+                      'Products',
+                      '${_products.length}',
+                      Icons.inventory_2_rounded,
+                      kGreen,
+                      isDark ? const Color(0xFF1A2A1A) : kGreenBg)),
               const SizedBox(width: 10),
               Expanded(
-                child: _statCard(
-                    'Orders',
-                    '0',
-                    Icons.receipt_long_rounded,
-                    kAmber,
-                    isDark ? const Color(0xFF2A2A1A) : const Color(0xFFFFF8E1)),
-              ),
+                  child: _statCard(
+                      'Orders',
+                      '0',
+                      Icons.receipt_long_rounded,
+                      kAmber,
+                      isDark
+                          ? const Color(0xFF2A2A1A)
+                          : const Color(0xFFFFF8E1))),
               const SizedBox(width: 10),
               Expanded(
-                child: _statCard(
-                    'Earned',
-                    '₹${totalEarnings.toStringAsFixed(0)}',
-                    Icons.currency_rupee_rounded,
-                    Colors.blue.shade700,
-                    isDark ? const Color(0xFF1A1A2A) : Colors.blue.shade50),
-              ),
+                  child: _statCard(
+                      'Earned',
+                      '₹${totalEarnings.toStringAsFixed(0)}',
+                      Icons.currency_rupee_rounded,
+                      Colors.blue.shade700,
+                      isDark ? const Color(0xFF1A1A2A) : Colors.blue.shade50)),
             ],
           ),
           const SizedBox(height: 24),
@@ -250,22 +435,20 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.05), blurRadius: 6)
-                ],
-              ),
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05), blurRadius: 6)
+                  ]),
               child: Row(
                 children: [
                   Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1A2A1A) : kGreenBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                        color: isDark ? const Color(0xFF1A2A1A) : kGreenBg,
+                        borderRadius: BorderRadius.circular(12)),
                     child: Center(
                         child: Text(_emojiFor(product.name),
                             style: const TextStyle(fontSize: 22))),
@@ -332,8 +515,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             const Text('No products yet',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            Text('Tap + Add Product to list your crops',
-                style: TextStyle(color: Colors.grey.shade600)),
+            const Text('Tap + Add Product to list your crops',
+                style: TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -346,15 +529,14 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2))
-            ],
-          ),
+              color: cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2))
+              ]),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -363,9 +545,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A2A1A) : kGreenBg,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                      color: isDark ? const Color(0xFF1A2A1A) : kGreenBg,
+                      borderRadius: BorderRadius.circular(14)),
                   child: Center(
                       child: Text(_emojiFor(product.name),
                           style: const TextStyle(fontSize: 26))),
@@ -390,10 +571,10 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.green.shade200),
-                            ),
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border:
+                                    Border.all(color: Colors.green.shade200)),
                             child: Text('Mkt ₹${product.marketPrice}',
                                 style: const TextStyle(
                                     fontSize: 11,
@@ -410,7 +591,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     _actionBtn(Icons.edit_rounded, Colors.orange, () {}),
                     const SizedBox(height: 6),
                     _actionBtn(Icons.delete_outline_rounded,
-                        Colors.red.shade400, () {}),
+                        Colors.red.shade400, () => _deleteProduct(index)),
                   ],
                 ),
               ],
@@ -439,10 +620,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
+          color: bg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.2))),
       child: Column(
         children: [
           Icon(icon, color: color, size: 22),
@@ -461,11 +641,10 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     return Row(
       children: [
         Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(
-              color: kGreen, borderRadius: BorderRadius.circular(4)),
-        ),
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+                color: kGreen, borderRadius: BorderRadius.circular(4))),
         const SizedBox(width: 8),
         Text(title,
             style: const TextStyle(
