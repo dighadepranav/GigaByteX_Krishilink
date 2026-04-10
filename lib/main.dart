@@ -1,24 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'utils/theme_provider.dart';
+import 'utils/app_localizations.dart';
+import 'utils/locale_provider.dart';
 import 'screens/splash_screen.dart';
 
-void main() {
-  runApp(const KrishiLinkApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final savedLang = prefs.getString('language') ?? 'en';
+  runApp(KrishiLinkApp(initialLocale: Locale(savedLang, '')));
 }
 
 class KrishiLinkApp extends StatelessWidget {
-  const KrishiLinkApp({super.key});
+  final Locale initialLocale;
+  const KrishiLinkApp({super.key, required this.initialLocale});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'KrishiLink',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF5F7F0),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider(initialLocale)),
+      ],
+      child: Consumer2<ThemeProvider, LocaleProvider>(
+        builder: (context, themeProvider, localeProvider, _) {
+          return MaterialApp(
+            title: 'KrishiLink',
+            debugShowCheckedModeBanner: false,
+            theme: themeProvider.themeData,
+            locale: localeProvider.locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en', ''),
+              Locale('hi', ''),
+              Locale('mr', ''),
+            ],
+            home: const SplashScreen(),
+          );
+        },
       ),
-      home: const SplashScreen(),
     );
   }
 }

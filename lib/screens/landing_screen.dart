@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../utils/theme_provider.dart';
+import '../widgets/language_switcher.dart';
 import 'login_screen.dart';
 
 class LandingScreen extends StatelessWidget {
@@ -6,6 +10,10 @@ class LandingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final iconColor = isDark ? Colors.white : Colors.black87;
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -13,9 +21,13 @@ class LandingScreen extends StatelessWidget {
         foregroundColor: Colors.black87,
         actions: [
           IconButton(
-            icon: const Icon(Icons.dark_mode),
-            onPressed: () {},
+            icon: Icon(
+              isDark ? Icons.light_mode : Icons.dark_mode,
+              color: iconColor,
+            ),
+            onPressed: themeProvider.toggleTheme,
           ),
+          const LanguageSwitcher(),
           const SizedBox(width: 8),
         ],
       ),
@@ -28,7 +40,11 @@ class LandingScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF66BB6A)],
+                  colors: [
+                    Color(0xFF1B5E20),
+                    Color(0xFF2E7D32),
+                    Color(0xFF66BB6A)
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -85,13 +101,32 @@ class LandingScreen extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  _roleCard(context, 'Farmer', 'Sell produce directly to buyers', Icons.agriculture, const Color(0xFF2E7D32), 'farmer'),
+                  _roleCard(
+                      context,
+                      'Farmer',
+                      'Sell produce directly to buyers',
+                      Icons.agriculture,
+                      const Color(0xFF2E7D32),
+                      'farmer'),
                   const SizedBox(height: 10),
-                  _roleCard(context, 'Buyer', 'Buy fresh produce from farms', Icons.shopping_cart_rounded, Colors.blue.shade700, 'buyer'),
+                  _roleCard(
+                      context,
+                      'Buyer',
+                      'Buy fresh produce from farms',
+                      Icons.shopping_cart_rounded,
+                      Colors.blue.shade700,
+                      'buyer'),
                   const SizedBox(height: 10),
-                  _roleCard(context, 'Worker', 'Get daily wage jobs on farms', Icons.work_rounded, Colors.purple.shade600, 'worker'),
+                  _roleCard(context, 'Worker', 'Get daily wage jobs on farms',
+                      Icons.work_rounded, Colors.purple.shade600, 'worker'),
                   const SizedBox(height: 10),
-                  _roleCard(context, 'Admin', 'Platform management & analytics', Icons.admin_panel_settings_rounded, Colors.red.shade700, 'admin'),
+                  _roleCard(
+                      context,
+                      'Admin',
+                      'Platform management & analytics',
+                      Icons.admin_panel_settings_rounded,
+                      Colors.red.shade700,
+                      'admin'),
                 ],
               ),
             ),
@@ -101,7 +136,8 @@ class LandingScreen extends StatelessWidget {
     );
   }
 
-  Widget _roleCard(BuildContext context, String title, String subtitle, IconData icon, Color color, String role) {
+  Widget _roleCard(BuildContext context, String title, String subtitle,
+      IconData icon, Color color, String role) {
     return Expanded(
       child: Material(
         elevation: 3,
@@ -111,7 +147,8 @@ class LandingScreen extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => LoginScreen(selectedRole: role)),
+              MaterialPageRoute(
+                  builder: (_) => LoginScreen(selectedRole: role)),
             );
           },
           borderRadius: BorderRadius.circular(16),
@@ -135,12 +172,14 @@ class LandingScreen extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         subtitle,
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey.shade600),
                       ),
                     ],
                   ),
