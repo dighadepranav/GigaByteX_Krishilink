@@ -9,21 +9,37 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # UI & Core
   cupertino_icons: ^1.0.6
   provider: ^6.0.5
   flutter_animate: ^4.5.0
+
+  # Storage & Data
   shared_preferences: ^2.2.2
   http: ^1.1.0
+
+  # Localization
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
+
+  # Charts & UI Components
   fl_chart: ^0.68.0
   timeline_tile: ^2.0.0
   shimmer: ^3.0.0
   cached_network_image: ^3.3.1
+
+  # Utilities
   connectivity_plus: ^5.0.2
   url_launcher: ^6.2.4
   image_picker: ^1.0.7
+
+  # Firebase
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.5.0
+  firebase_storage: ^12.3.0
 
 dev_dependencies:
   flutter_test:
