@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'farmer_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? selectedRole;
@@ -59,6 +60,19 @@ class _LoginScreenState extends State<LoginScreen> {
         'bgGrad': [const Color(0xFFB71C1C), const Color(0xFFE53935)],
       },
     };
+  }
+
+  void _handleLogin() {
+    if (_selectedRole == 'farmer') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const FarmerDashboard()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Coming soon!')),
+      );
+    }
   }
 
   @override
@@ -172,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _handleLogin,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: roleColor,
                         foregroundColor: Colors.white,
