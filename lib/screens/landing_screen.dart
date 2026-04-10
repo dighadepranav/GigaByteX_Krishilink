@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_screen.dart';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
@@ -84,13 +85,13 @@ class LandingScreen extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  _roleCard('Farmer', 'Sell produce directly to buyers', Icons.agriculture, const Color(0xFF2E7D32)),
+                  _roleCard(context, 'Farmer', 'Sell produce directly to buyers', Icons.agriculture, const Color(0xFF2E7D32), 'farmer'),
                   const SizedBox(height: 10),
-                  _roleCard('Buyer', 'Buy fresh produce from farms', Icons.shopping_cart_rounded, Colors.blue.shade700),
+                  _roleCard(context, 'Buyer', 'Buy fresh produce from farms', Icons.shopping_cart_rounded, Colors.blue.shade700, 'buyer'),
                   const SizedBox(height: 10),
-                  _roleCard('Worker', 'Get daily wage jobs on farms', Icons.work_rounded, Colors.purple.shade600),
+                  _roleCard(context, 'Worker', 'Get daily wage jobs on farms', Icons.work_rounded, Colors.purple.shade600, 'worker'),
                   const SizedBox(height: 10),
-                  _roleCard('Admin', 'Platform management & analytics', Icons.admin_panel_settings_rounded, Colors.red.shade700),
+                  _roleCard(context, 'Admin', 'Platform management & analytics', Icons.admin_panel_settings_rounded, Colors.red.shade700, 'admin'),
                 ],
               ),
             ),
@@ -100,14 +101,19 @@ class LandingScreen extends StatelessWidget {
     );
   }
 
-  Widget _roleCard(String title, String subtitle, IconData icon, Color color) {
+  Widget _roleCard(BuildContext context, String title, String subtitle, IconData icon, Color color, String role) {
     return Expanded(
       child: Material(
         elevation: 3,
         borderRadius: BorderRadius.circular(16),
         color: Colors.white,
         child: InkWell(
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => LoginScreen(selectedRole: role)),
+            );
+          },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
