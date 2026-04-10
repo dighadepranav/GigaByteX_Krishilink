@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/app_localizations.dart';
+import '../services/firestore_service.dart';
 import '../models/product_model.dart';
 import '../models/order_model.dart';
 import '../models/job_model.dart';
-import '../utils/app_localizations.dart';
+import 'landing_screen.dart';
 import 'farmer_job_applications_screen.dart';
+import 'marketplace_screen.dart';
 
 class FarmerDashboard extends StatefulWidget {
   const FarmerDashboard({super.key});
@@ -14,114 +19,38 @@ class FarmerDashboard extends StatefulWidget {
 
 class _FarmerDashboardState extends State<FarmerDashboard> {
   int _selectedIndex = 0;
-  String _userName = 'Ramesh Patel';
-  List<ProductModel> _products = [];
-  List<OrderModel> _orders = [];
-  List<JobModel> _myJobs = [];
+  String _userName = 'Farmer';
+  String _userPhone = '';
+  String _userLocation = 'Pune, Maharashtra';
+  String _userUid = '';
+
   static const kGreen = Color(0xFF2E7D32);
   static const kGreenLight = Color(0xFF66BB6A);
   static const kGreenBg = Color(0xFFF1F8E9);
   static const kAmber = Color(0xFFFF8F00);
 
-  int _nextId = 4;
-  int _nextOrderId = 2;
-  int _nextJobId = 2;
+  List<ProductModel> _products = [];
+  List<OrderModel> _orders = [];
+  List<JobModel> _myJobs = [];
+  bool _isLoading = false;
 
-  final List<ProductModel> _demoProducts = [
-    ProductModel(
-      id: 1,
-      farmerId: 1,
-      farmerName: 'Ramesh Patel',
-      name: 'Fresh Tomatoes',
-      quantity: 100,
-      unit: 'kg',
-      price: 25,
-      marketPrice: 40,
-      status: 'available',
-      createdAt: DateTime.now(),
-    ),
-    ProductModel(
-      id: 2,
-      farmerId: 1,
-      farmerName: 'Ramesh Patel',
-      name: 'Green Chillies',
-      quantity: 50,
-      unit: 'kg',
-      price: 30,
-      marketPrice: 60,
-      status: 'available',
-      createdAt: DateTime.now(),
-    ),
-    ProductModel(
-      id: 3,
-      farmerId: 1,
-      farmerName: 'Ramesh Patel',
-      name: 'Onions',
-      quantity: 200,
-      unit: 'kg',
-      price: 20,
-      marketPrice: 35,
-      status: 'available',
-      createdAt: DateTime.now(),
-    ),
-  ];
+  StreamSubscription? _productsSub;
+  StreamSubscription? _ordersSub;
+  StreamSubscription? _jobsSub;
 
-  final List<OrderModel> _demoOrders = [
-    OrderModel(
-      id: 1,
-      productDocId: 'prod1',
-      productName: 'Fresh Tomatoes',
-      buyerId: 101,
-      buyerName: 'Amit Shah',
-      farmerId: 1,
-      farmerName: 'Ramesh Patel',
-      quantity: 10,
-      unit: 'kg',
-      price: 25,
-      totalAmount: 250,
-      status: 'pending',
-      trackingStatus: 'harvested',
-      orderDate: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-  ];
-
-  final List<JobModel> _demoJobs = [
-    JobModel(
-      id: 1,
-      farmerId: 1,
-      farmerName: 'Ramesh Patel',
-      title: 'Harvesting Helper',
-      description: 'Need workers for tomato harvesting',
-      location: 'Pune',
-      wage: 350,
-      duration: '5 days',
-      workersNeeded: 10,
-      status: 'open',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      applicationsCount: 3,
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _products = List.from(_demoProducts);
-    _orders = List.from(_demoOrders);
-    _myJobs = List.from(_demoJobs);
-    _nextId = _products.length + 1;
-    _nextOrderId = _orders.length + 1;
-    _nextJobId = _myJobs.length + 1;
-  }
+  final FirestoreService _firestoreService = FirestoreService();
 
   static const Map<String, String> _cropEmoji = {
     'tomato': '🍅',
     'chilli': '🌶️',
-    'onion': '🧅',
     'potato': '🥔',
+    'onion': '🧅',
     'brinjal': '🍆',
+    'eggplant': '🍆',
     'carrot': '🥕',
     'corn': '🌽',
     'wheat': '🌾',
+    'rice': '🌾',
   };
 
   String _emojiFor(String name) {
@@ -130,6 +59,60 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
       if (lower.contains(entry.key)) return entry.value;
     }
     return '🥬';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userName = prefs.getString('userName') ?? 'Farmer';
+      _userPhone = prefs.getString('userPhone') ?? '';
+      _userLocation = prefs.getString('userLocation') ?? 'Pune, Maharashtra';
+      _userUid = prefs.getString('userUid') ?? '';
+    });
+    _initStreams();
+  }
+
+  void _initStreams() {
+    if (_userUid.isEmpty) return;
+    _productsSub?.cancel();
+    _ordersSub?.cancel();
+    _jobsSub?.cancel();
+
+    _productsSub =
+        _firestoreService.streamFarmerProducts(_userUid).listen((products) {
+      if (mounted) setState(() => _products = products);
+    });
+
+    _ordersSub =
+        _firestoreService.streamFarmerOrders(_userUid).listen((orders) {
+      if (mounted) setState(() => _orders = orders);
+    });
+
+    _jobsSub = _firestoreService.streamFarmerJobs(_userUid).listen((jobs) {
+      if (mounted) setState(() => _myJobs = jobs);
+    });
+  }
+
+  @override
+  void dispose() {
+    _productsSub?.cancel();
+    _ordersSub?.cancel();
+    _jobsSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(context,
+        MaterialPageRoute(builder: (_) => const LandingScreen()), (_) => false);
   }
 
   void _showAddProductDialog() {
@@ -150,24 +133,21 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             padding: EdgeInsets.only(bottom: keyboardPadding),
             child: Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
+                  color: Theme.of(context).cardColor,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(24))),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(4)),
-                    ),
-                  ),
+                      child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(4)))),
                   const SizedBox(height: 16),
                   const Text('➕  Add Product',
                       style: TextStyle(
@@ -176,102 +156,98 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                           color: kGreen)),
                   const SizedBox(height: 16),
                   _inputField(
-                      nameCtrl, 'Product Name', '🌾  e.g. Fresh Tomatoes'),
+                      nameCtrl, 'Product Name', '🌾 e.g. Fresh Tomatoes'),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _inputField(qtyCtrl, 'Quantity', '',
-                              isNumber: true)),
-                      const SizedBox(width: 10),
-                      SizedBox(
+                  Row(children: [
+                    Expanded(
+                        child: _inputField(qtyCtrl, 'Quantity', '',
+                            isNumber: true)),
+                    const SizedBox(width: 10),
+                    SizedBox(
                         width: 110,
                         child: DropdownButtonFormField<String>(
                           value: unit,
                           isExpanded: true,
                           decoration: InputDecoration(
-                            labelText: 'Unit',
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 14),
-                          ),
+                              labelText: 'Unit',
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 14)),
                           items: ['kg', 'g', 'ton', 'dozen', 'piece', 'liter']
                               .map((u) =>
                                   DropdownMenuItem(value: u, child: Text(u)))
                               .toList(),
                           onChanged: (v) =>
                               setSheetState(() => unit = v ?? 'kg'),
-                        ),
-                      ),
-                    ],
-                  ),
+                        )),
+                  ]),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _inputField(priceCtrl, 'Price (₹)', '',
-                              isNumber: true)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                          child: _inputField(marketCtrl, 'Market Price (₹)', '',
-                              isNumber: true)),
-                    ],
-                  ),
+                  Row(children: [
+                    Expanded(
+                        child: _inputField(priceCtrl, 'Price (₹)', '',
+                            isNumber: true)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: _inputField(marketCtrl, 'Market Price (₹)', '',
+                            isNumber: true)),
+                  ]),
                   const SizedBox(height: 20),
                   SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (nameCtrl.text.isNotEmpty &&
-                            priceCtrl.text.isNotEmpty &&
-                            marketCtrl.text.isNotEmpty) {
-                          final price = double.tryParse(priceCtrl.text) ?? 0;
-                          final marketPrice =
-                              double.tryParse(marketCtrl.text) ?? price;
-                          final newProduct = ProductModel(
-                            docId: DateTime.now()
-                                .millisecondsSinceEpoch
-                                .toString(),
-                            id: _nextId,
-                            farmerId: 1,
-                            farmerUid: 'farmer_uid',
-                            farmerName: _userName,
-                            name: nameCtrl.text.trim(),
-                            quantity: double.tryParse(qtyCtrl.text) ?? 0,
-                            unit: unit,
-                            price: price,
-                            marketPrice: marketPrice,
-                            description: '',
-                            images: null,
-                            status: 'available',
-                            createdAt: DateTime.now(),
-                          );
-                          setState(() {
-                            _products.insert(0, newProduct);
-                            _nextId++;
-                          });
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('✅ Product added successfully'),
-                                backgroundColor: kGreen,
-                                behavior: SnackBarBehavior.floating),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kGreen,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: const Text('Add Product',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (nameCtrl.text.isNotEmpty &&
+                              priceCtrl.text.isNotEmpty &&
+                              marketCtrl.text.isNotEmpty) {
+                            final price = double.tryParse(priceCtrl.text) ?? 0;
+                            final marketPrice =
+                                double.tryParse(marketCtrl.text) ?? price;
+                            final newProduct = ProductModel(
+                              docId: '',
+                              id: DateTime.now().millisecondsSinceEpoch,
+                              farmerId: 0,
+                              farmerUid: _userUid,
+                              farmerName: _userName,
+                              name: nameCtrl.text.trim(),
+                              quantity: double.tryParse(qtyCtrl.text) ?? 0,
+                              unit: unit,
+                              price: price,
+                              marketPrice: marketPrice,
+                              description: '',
+                              images: null,
+                              status: 'available',
+                              createdAt: DateTime.now(),
+                            );
+                            setState(() => _isLoading = true);
+                            try {
+                              await _firestoreService.addProduct(
+                                  newProduct, _userUid);
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('✅ Product added'),
+                                      backgroundColor: kGreen));
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: Colors.red));
+                            } finally {
+                              setState(() => _isLoading = false);
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: kGreen,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14))),
+                        child: const Text('Add Product',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                      )),
                 ],
               ),
             ),
@@ -300,24 +276,21 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             padding: EdgeInsets.only(bottom: keyboardPadding),
             child: Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
+                  color: Theme.of(context).cardColor,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(24))),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(4)),
-                    ),
-                  ),
+                      child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(4)))),
                   const SizedBox(height: 16),
                   const Text('➕  Post a Job',
                       style: TextStyle(
@@ -331,69 +304,67 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                   const SizedBox(height: 12),
                   _inputField(locCtrl, 'Location', 'City / Village'),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _inputField(wageCtrl, 'Wage (₹/day)', '',
-                              isNumber: true)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                          child: _inputField(
-                              durationCtrl, 'Duration', 'e.g. 3 days')),
-                    ],
-                  ),
+                  Row(children: [
+                    Expanded(
+                        child: _inputField(wageCtrl, 'Wage (₹/day)', '',
+                            isNumber: true)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: _inputField(
+                            durationCtrl, 'Duration', 'e.g. 3 days')),
+                  ]),
                   const SizedBox(height: 12),
                   _inputField(workersCtrl, 'Workers Needed', '',
                       isNumber: true),
                   const SizedBox(height: 20),
                   SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (titleCtrl.text.isNotEmpty) {
-                          final newJob = JobModel(
-                            docId: DateTime.now()
-                                .millisecondsSinceEpoch
-                                .toString(),
-                            id: _nextJobId,
-                            farmerId: 1,
-                            farmerUid: 'farmer_uid',
-                            farmerName: _userName,
-                            title: titleCtrl.text.trim(),
-                            description: descCtrl.text.trim(),
-                            location: locCtrl.text.trim(),
-                            wage: double.tryParse(wageCtrl.text) ?? 0,
-                            duration: durationCtrl.text.trim(),
-                            workersNeeded: int.tryParse(workersCtrl.text) ?? 1,
-                            status: 'open',
-                            createdAt: DateTime.now(),
-                            applicationsCount: 0,
-                          );
-                          setState(() {
-                            _myJobs.insert(0, newJob);
-                            _nextJobId++;
-                          });
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Job posted successfully!'),
-                                backgroundColor: kGreen,
-                                behavior: SnackBarBehavior.floating),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kGreen,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: const Text('Post Job',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (titleCtrl.text.isNotEmpty) {
+                            final job = JobModel(
+                              id: DateTime.now().millisecondsSinceEpoch,
+                              farmerId: 0,
+                              farmerUid: _userUid,
+                              farmerName: _userName,
+                              title: titleCtrl.text.trim(),
+                              description: descCtrl.text.trim(),
+                              location: locCtrl.text.trim(),
+                              wage: double.tryParse(wageCtrl.text) ?? 0,
+                              duration: durationCtrl.text.trim(),
+                              workersNeeded:
+                                  int.tryParse(workersCtrl.text) ?? 1,
+                              status: 'open',
+                              createdAt: DateTime.now(),
+                            );
+                            setState(() => _isLoading = true);
+                            try {
+                              await _firestoreService.addJob(job, _userUid);
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Job posted!'),
+                                      backgroundColor: kGreen));
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: Colors.red));
+                            } finally {
+                              setState(() => _isLoading = false);
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: kGreen,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14))),
+                        child: const Text('Post Job',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                      )),
                 ],
               ),
             ),
@@ -418,120 +389,111 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     );
   }
 
-  void _deleteProduct(int index) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Product'),
-        content: const Text('Are you sure you want to remove this product?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => _products.removeAt(index));
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Product removed'),
-                    backgroundColor: Colors.red,
-                    behavior: SnackBarBehavior.floating),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _updateOrderStatus(
       String docId, String status, String trackingStatus) async {
-    setState(() {
-      final index = _orders.indexWhere((o) => o.docId == docId);
-      if (index != -1) {
-        _orders[index] = _orders[index]
-            .copyWith(status: status, trackingStatus: trackingStatus);
-      }
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('Order $status'),
-          backgroundColor: kGreen,
-          behavior: SnackBarBehavior.floating),
-    );
+    setState(() => _isLoading = true);
+    try {
+      await _firestoreService.updateOrderStatus(docId, status, trackingStatus);
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order $status'), backgroundColor: kGreen));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Row(
-          children: [
+    final l10n = AppLocalizations.of(context);
+    return WillPopScope(
+      onWillPop: () async {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(l10n?.translate('exit_app') ?? 'Exit App'),
+            content:
+                Text(l10n?.translate('exit_confirm') ?? 'Do you want to exit?'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n?.translate('cancel') ?? 'Cancel')),
+              ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: Text(l10n?.translate('confirm') ?? 'Exit')),
+            ],
+          ),
+        );
+        return confirm == true;
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: Row(children: [
             const Icon(Icons.eco, color: Colors.white, size: 26),
             const SizedBox(width: 8),
-            const Text('KrishiLink',
-                style: TextStyle(
+            Text(l10n?.translate('app_name') ?? 'KrishiLink',
+                style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.white)),
+          ]),
+          backgroundColor: kGreen,
+          foregroundColor: Colors.white,
+          automaticallyImplyLeading: false,
+          elevation: 0,
+        ),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            _buildHomeTab(),
+            _buildProductsTab(),
+            _buildOrdersTab(),
+            _buildJobsTab(),
+            _buildProfileTab(),
           ],
         ),
-        backgroundColor: kGreen,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-        elevation: 0,
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _buildHomeTab(),
-          _buildProductsTab(),
-          _buildOrdersTab(),
-          _buildJobsTab(),
-          _buildProfileTab(),
-        ],
-      ),
-      floatingActionButton: _selectedIndex == 1
-          ? FloatingActionButton.extended(
-              onPressed: _showAddProductDialog,
-              backgroundColor: kGreen,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Product',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-            )
-          : (_selectedIndex == 3
-              ? FloatingActionButton.extended(
-                  onPressed: _showPostJobDialog,
-                  backgroundColor: kGreen,
-                  foregroundColor: Colors.white,
-                  icon: const Icon(Icons.post_add),
-                  label: const Text('Post Job',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                )
-              : null),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
-        selectedItemColor: kGreen,
-        unselectedItemColor: Colors.grey.shade500,
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2_rounded), label: 'Products'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long_rounded), label: 'Orders'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.work_outline), label: 'Job Requests'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_rounded), label: 'Profile'),
-        ],
+        floatingActionButton: _selectedIndex == 1
+            ? FloatingActionButton.extended(
+                onPressed: _showAddProductDialog,
+                backgroundColor: kGreen,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Product'))
+            : (_selectedIndex == 3
+                ? FloatingActionButton.extended(
+                    onPressed: _showPostJobDialog,
+                    backgroundColor: kGreen,
+                    icon: const Icon(Icons.post_add),
+                    label: const Text('Post Job'))
+                : null),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (i) => setState(() => _selectedIndex = i),
+          selectedItemColor: kGreen,
+          unselectedItemColor: Colors.grey.shade500,
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          type: BottomNavigationBarType.fixed,
+          items: [
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.home_rounded),
+                label: l10n?.translate('home') ?? 'Home'),
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.inventory_2_rounded),
+                label: l10n?.translate('products') ?? 'Products'),
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.receipt_long_rounded),
+                label: l10n?.translate('orders') ?? 'Orders'),
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.work_outline),
+                label: l10n?.translate('job_requests') ?? 'Job Requests'),
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.person_rounded),
+                label: l10n?.translate('profile') ?? 'Profile'),
+          ],
+        ),
       ),
     );
   }
@@ -546,86 +508,79 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  colors: [Color(0xFF1B5E20), kGreen, kGreenLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                    color: kGreen.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4))
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
+                gradient: const LinearGradient(
+                    colors: [Color(0xFF1B5E20), kGreen, kGreenLight]),
+                borderRadius: BorderRadius.circular(20)),
+            child: Row(children: [
+              Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle),
                   child: const Icon(Icons.agriculture_rounded,
-                      size: 34, color: Colors.white),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
+                      size: 34, color: Colors.white)),
+              const SizedBox(width: 14),
+              Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Jai Kisan, $_userName! 🌾',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      const Text('Your farm dashboard is ready',
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text('Jai Kisan, $_userName! 🌾',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold)),
+                    const Text('Your farm dashboard is ready',
+                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  ])),
+            ]),
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                  child: _statCard(
-                      'Products',
-                      '${_products.length}',
-                      Icons.inventory_2_rounded,
-                      kGreen,
-                      isDark ? const Color(0xFF1A2A1A) : kGreenBg)),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: _statCard(
-                      'Orders',
-                      '${_orders.length}',
-                      Icons.receipt_long_rounded,
-                      kAmber,
-                      isDark
-                          ? const Color(0xFF2A2A1A)
-                          : const Color(0xFFFFF8E1))),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: _statCard(
-                      'Earned',
-                      '₹${totalEarnings.toStringAsFixed(0)}',
-                      Icons.currency_rupee_rounded,
-                      Colors.blue.shade700,
-                      isDark ? const Color(0xFF1A1A2A) : Colors.blue.shade50)),
-            ],
-          ),
+          Row(children: [
+            Expanded(
+                child: _statCard(
+                    'Products',
+                    '${_products.length}',
+                    Icons.inventory_2_rounded,
+                    kGreen,
+                    isDark ? const Color(0xFF1A2A1A) : kGreenBg)),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _statCard(
+                    'Orders',
+                    '${_orders.length}',
+                    Icons.receipt_long_rounded,
+                    kAmber,
+                    isDark
+                        ? const Color(0xFF2A2A1A)
+                        : const Color(0xFFFFF8E1))),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _statCard(
+                    'Earned',
+                    '₹${totalEarnings.toStringAsFixed(0)}',
+                    Icons.currency_rupee_rounded,
+                    Colors.blue.shade700,
+                    isDark ? const Color(0xFF1A1A2A) : Colors.blue.shade50)),
+          ]),
           const SizedBox(height: 24),
-          _sectionTitle('Price Comparison'),
+          Row(children: [
+            Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                    color: kGreen, borderRadius: BorderRadius.circular(4))),
+            const SizedBox(width: 8),
+            const Text('Price Comparison',
+                style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1B5E20)))
+          ]),
           const SizedBox(height: 10),
           ..._products.map((product) {
             final saving = product.marketPrice - product.price;
@@ -633,15 +588,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.05), blurRadius: 6)
-                  ]),
-              child: Row(
-                children: [
-                  Container(
+                  color: cardColor, borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [
+                Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
@@ -649,50 +598,42 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                         borderRadius: BorderRadius.circular(12)),
                     child: Center(
                         child: Text(_emojiFor(product.name),
-                            style: const TextStyle(fontSize: 22))),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                            style: const TextStyle(fontSize: 22)))),
+                const SizedBox(width: 12),
+                Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(product.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14)),
-                        Text(
-                            '${product.quantity} ${product.unit} available stock',
-                            style: TextStyle(
-                                color: Colors.grey.shade600, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('Your price: ₹${product.price}/${product.unit}',
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(product.name,
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: kGreen,
-                              fontSize: 13)),
-                      Text('Market price: ₹${product.marketPrice}',
+                              fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text(
+                          '${product.quantity} ${product.unit} available stock',
                           style: TextStyle(
-                              color: Colors.grey.shade600, fontSize: 11)),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(6)),
-                        child: Text('Save ₹${saving.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                                fontSize: 10,
-                                color: kGreen,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                              color: Colors.grey.shade600, fontSize: 12))
+                    ])),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text('Your price: ₹${product.price}/${product.unit}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: kGreen,
+                          fontSize: 13)),
+                  Text('Market: ₹${product.marketPrice}',
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                  Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(6)),
+                      child: Text('Save ₹${saving.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              fontSize: 10,
+                              color: kGreen,
+                              fontWeight: FontWeight.bold))),
+                ]),
+              ]),
             );
           }),
         ],
@@ -705,19 +646,12 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
     if (_products.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🌱', style: TextStyle(fontSize: 60)),
-            const SizedBox(height: 12),
-            const Text('No products yet',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            const Text('Tap + Add Product to list your crops',
-                style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      );
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('🌱', style: TextStyle(fontSize: 60)),
+        const Text('No products yet',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text('Tap + to add', style: TextStyle(color: Colors.grey))
+      ]));
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
@@ -727,19 +661,11 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2))
-              ]),
+              color: cardColor, borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Container(
+            child: Row(children: [
+              Container(
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
@@ -747,53 +673,53 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                       borderRadius: BorderRadius.circular(14)),
                   child: Center(
                       child: Text(_emojiFor(product.name),
-                          style: const TextStyle(fontSize: 26))),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+                          style: const TextStyle(fontSize: 26)))),
+              const SizedBox(width: 12),
+              Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(product.name,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15)),
-                      const SizedBox(height: 3),
-                      Text(
-                          '${product.quantity} ${product.unit}  •  ₹${product.price}/${product.unit}',
-                          style: TextStyle(
-                              color: Colors.grey.shade600, fontSize: 13)),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(6),
-                                border:
-                                    Border.all(color: Colors.green.shade200)),
-                            child: Text('Mkt ₹${product.marketPrice}',
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    color: kGreen,
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  children: [
-                    _actionBtn(Icons.edit_rounded, Colors.orange, () {}),
-                    const SizedBox(height: 6),
-                    _actionBtn(Icons.delete_outline_rounded,
-                        Colors.red.shade400, () => _deleteProduct(index)),
-                  ],
-                ),
-              ],
-            ),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(product.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15)),
+                    Text(
+                        '${product.quantity} ${product.unit} • ₹${product.price}/${product.unit}',
+                        style: TextStyle(
+                            color: Colors.grey.shade600, fontSize: 13)),
+                    Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(6)),
+                        child: Text('Mkt ₹${product.marketPrice}',
+                            style:
+                                const TextStyle(fontSize: 11, color: kGreen))),
+                  ])),
+              Column(children: [
+                GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(9)),
+                        child: const Icon(Icons.edit_rounded,
+                            color: Colors.orange, size: 18))),
+                const SizedBox(height: 6),
+                GestureDetector(
+                    onTap: () async {
+                      await _firestoreService.deleteProduct(product.docId);
+                    },
+                    child: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(9)),
+                        child: const Icon(Icons.delete_outline_rounded,
+                            color: Colors.red, size: 18))),
+              ]),
+            ]),
           ),
         );
       },
@@ -803,11 +729,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   Widget _buildOrdersTab() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
-    if (_orders.isEmpty) {
-      return Center(
-          child: Text('No orders yet',
-              style: TextStyle(color: Colors.grey.shade600)));
-    }
+    if (_orders.isEmpty) return Center(child: const Text('No orders yet'));
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _orders.length,
@@ -817,122 +739,88 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
-              ]),
+              color: cardColor, borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Order #${order.id}',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Colors.grey.shade500)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: color.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(icon, size: 12, color: color),
-                          const SizedBox(width: 4),
-                          Text(label,
-                              style: TextStyle(
-                                  color: color,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                    '${_emojiFor(order.productName)}  ${order.productName} — ${order.quantity} ${order.unit}',
+            child: Column(children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text('Order #${order.id}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.grey.shade500)),
+                Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: color.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20)),
+                    child: Row(children: [
+                      Icon(icon, size: 12, color: color),
+                      const SizedBox(width: 4),
+                      Text(label,
+                          style: TextStyle(
+                              color: color,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold))
+                    ])),
+              ]),
+              const SizedBox(height: 8),
+              Text(
+                  '${_emojiFor(order.productName)}  ${order.productName} — ${order.quantity} ${order.unit}',
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w600)),
+              Row(children: [
+                Icon(Icons.storefront_rounded,
+                    size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 4),
+                Text(order.buyerName,
+                    style:
+                        TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                const Spacer(),
+                Text('₹${order.totalAmount.toStringAsFixed(0)}',
                     style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.storefront_rounded,
-                        size: 14, color: Colors.grey.shade500),
-                    const SizedBox(width: 4),
-                    Text(order.buyerName,
-                        style: TextStyle(
-                            color: Colors.grey.shade600, fontSize: 13)),
-                    const Spacer(),
-                    Text('₹${order.totalAmount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: kGreen,
-                            fontSize: 16)),
-                  ],
-                ),
-                if (order.status == 'pending')
-                  Padding(
+                        fontWeight: FontWeight.bold,
+                        color: kGreen,
+                        fontSize: 16)),
+              ]),
+              if (order.status == 'pending')
+                Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: Row(
-                      children: [
-                        Expanded(
+                    child: Row(children: [
+                      Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _updateOrderStatus(
-                                order.docId, 'confirmed', 'packed'),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white),
-                            child: const Text('Accept'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
+                              onPressed: () => _updateOrderStatus(
+                                  order.docId, 'confirmed', 'packed'),
+                              child: const Text('Accept'))),
+                      const SizedBox(width: 10),
+                      Expanded(
                           child: OutlinedButton(
-                            onPressed: () => _updateOrderStatus(
-                                order.docId, 'cancelled', 'cancelled'),
-                            style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.red),
-                            child: const Text('Reject'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (order.status == 'confirmed' &&
-                    order.trackingStatus != 'delivered')
-                  Padding(
+                              onPressed: () => _updateOrderStatus(
+                                  order.docId, 'cancelled', 'cancelled'),
+                              style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red),
+                              child: const Text('Reject'))),
+                    ])),
+              if (order.status == 'confirmed' &&
+                  order.trackingStatus != 'delivered')
+                Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: Row(
-                      children: [
-                        if (order.trackingStatus == 'packed')
-                          Expanded(
+                    child: Row(children: [
+                      if (order.trackingStatus == 'packed')
+                        Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _updateOrderStatus(
-                                  order.docId, 'processing', 'in_transit'),
-                              child: const Text('Mark In Transit'),
-                            ),
-                          ),
-                        if (order.trackingStatus == 'in_transit')
-                          Expanded(
+                                onPressed: () => _updateOrderStatus(
+                                    order.docId, 'processing', 'in_transit'),
+                                child: const Text('Mark In Transit'))),
+                      if (order.trackingStatus == 'in_transit')
+                        Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _updateOrderStatus(
-                                  order.docId, 'delivered', 'delivered'),
-                              child: const Text('Mark Delivered'),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+                                onPressed: () => _updateOrderStatus(
+                                    order.docId, 'delivered', 'delivered'),
+                                child: const Text('Mark Delivered'))),
+                    ])),
+            ]),
           ),
         );
       },
@@ -941,30 +829,16 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
 
   Widget _buildJobsTab() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final l10n = AppLocalizations.of(context);
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
-
     if (_myJobs.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('📋', style: TextStyle(fontSize: 50)),
-            const SizedBox(height: 12),
-            Text(
-              l10n?.translate('no_jobs') ?? 'No job posts yet',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              l10n?.translate('post_job') ?? 'Tap + to post a job',
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      );
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('📋', style: TextStyle(fontSize: 50)),
+        const Text('No job posts yet',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text('Tap + to post', style: TextStyle(color: Colors.grey))
+      ]));
     }
-
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _myJobs.length,
@@ -973,31 +847,22 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6),
-            ],
-          ),
+              color: cardColor, borderRadius: BorderRadius.circular(16)),
           child: ListTile(
             leading: const Icon(Icons.work, color: kGreen),
             title: Text(job.title,
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(
-              '${job.location} • ${job.formattedWage} • ${job.workersNeeded} ${l10n?.translate('workers_needed') ?? 'needed'}',
-            ),
+                '${job.location} • ${job.formattedWage} • ${job.workersNeeded} needed'),
             trailing: IconButton(
-              icon: const Icon(Icons.people_rounded, color: kGreen),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        FarmerJobApplicationsScreen(jobDocId: job.docId),
-                  ),
-                );
-              },
-            ),
+                icon: const Icon(Icons.people_rounded, color: kGreen),
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => FarmerJobApplicationsScreen(
+                              jobDocId: job.docId)));
+                }),
             onTap: () => _showJobDetails(job),
           ),
         );
@@ -1007,29 +872,211 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
 
   void _showJobDetails(JobModel job) {
     showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(job.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Location: ${job.location}'),
-            Text('Wage: ${job.formattedWage}'),
-            Text('Duration: ${job.duration}'),
-            Text('Workers Needed: ${job.workersNeeded}'),
-            const SizedBox(height: 8),
-            Text('Description: ${job.description}'),
-          ],
+        context: context,
+        builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: Text(job.title),
+              content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Location: ${job.location}'),
+                    Text('Wage: ${job.formattedWage}'),
+                    Text('Duration: ${job.duration}'),
+                    Text('Workers: ${job.workersNeeded}'),
+                    const SizedBox(height: 8),
+                    Text('Description: ${job.description}'),
+                  ]),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'))
+              ],
+            ));
+  }
+
+  Widget _buildProfileTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+              gradient:
+                  const LinearGradient(colors: [Color(0xFF1B5E20), kGreen]),
+              borderRadius: BorderRadius.circular(20)),
+          child: Column(children: [
+            Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    shape: BoxShape.circle),
+                child: const CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white,
+                    child: Text('👨‍🌾', style: TextStyle(fontSize: 38)))),
+            const SizedBox(height: 12),
+            Text(_userName,
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
+            const SizedBox(height: 4),
+            if (_userPhone.isNotEmpty)
+              Text(_userPhone,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.location_on_rounded,
+                  color: Colors.white70, size: 14),
+              const SizedBox(width: 4),
+              Text(_userLocation,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12))
+            ]),
+            const SizedBox(height: 12),
+            Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20)),
+                child: const Text('🌾  Farmer',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold))),
+          ]),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close')),
-        ],
-      ),
+        const SizedBox(height: 20),
+        Row(children: [
+          Expanded(
+              child: _miniStat('${_products.length}', 'Products',
+                  Icons.inventory_2_rounded, kGreen, cardColor)),
+          const SizedBox(width: 10),
+          Expanded(
+              child: _miniStat('${_orders.length}', 'Orders',
+                  Icons.receipt_long_rounded, kAmber, cardColor)),
+          const SizedBox(width: 10),
+          Expanded(
+              child: _miniStat('4.8 ⭐', 'Rating', Icons.star_rounded,
+                  Colors.orange, cardColor)),
+        ]),
+        const SizedBox(height: 20),
+        _profileTile(
+            Icons.inventory_2_rounded,
+            'My Products',
+            '${_products.length} products',
+            kGreen,
+            cardColor,
+            () => setState(() => _selectedIndex = 1)),
+        _profileTile(
+            Icons.receipt_long_rounded,
+            'My Orders',
+            '${_orders.length} orders',
+            Colors.blue.shade700,
+            cardColor,
+            () => setState(() => _selectedIndex = 2)),
+        _profileTile(
+            Icons.work_outline,
+            'My Job Posts',
+            '${_myJobs.length} active',
+            Colors.deepPurple,
+            cardColor,
+            () => setState(() => _selectedIndex = 3)),
+        _profileTile(
+            Icons.help_outline_rounded,
+            'Help & Support',
+            'support@krishilink.com',
+            Colors.teal,
+            cardColor,
+            () => _showInfo('Help & Support',
+                '📞 Helpline: 1800-123-4567\n📧 Email: support@krishilink.com')),
+        _profileTile(
+            Icons.info_outline_rounded,
+            'About KrishiLink',
+            'Version 1.0.0',
+            Colors.grey.shade600,
+            cardColor,
+            () => _showInfo('About KrishiLink',
+                '🌾 KrishiLink connects farmers directly to buyers.\n\nVersion 1.0.0\n© 2024 KrishiLink')),
+        const SizedBox(height: 20),
+        SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+                onPressed: _confirmLogout,
+                icon: const Icon(Icons.logout_rounded, color: Colors.red),
+                label: const Text('Logout',
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
+                style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14))))),
+      ]),
     );
+  }
+
+  Widget _miniStat(
+      String val, String label, IconData icon, Color color, Color bg) {
+    return Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration:
+            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14)),
+        child: Column(children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          Text(val,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: color, fontSize: 15)),
+          Text(label,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade600))
+        ]));
+  }
+
+  Widget _profileTile(IconData icon, String title, String sub, Color color,
+      Color cardColor, VoidCallback onTap) {
+    return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+            color: cardColor, borderRadius: BorderRadius.circular(14)),
+        child: ListTile(
+            onTap: onTap,
+            leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: color, size: 22)),
+            title: Text(title,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            subtitle: Text(sub,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            trailing: Icon(Icons.chevron_right_rounded,
+                color: Colors.grey.shade400)));
+  }
+
+  Widget _statCard(
+      String label, String value, IconData icon, Color color, Color bg) {
+    return Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withOpacity(0.2))),
+        child: Column(children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.bold, color: color)),
+          Text(label,
+              style: TextStyle(fontSize: 10, color: color.withOpacity(0.7)))
+        ]));
   }
 
   (Color, String, IconData) _orderStatus(String s) {
@@ -1047,371 +1094,44 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     }
   }
 
-  Widget _actionBtn(IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(9)),
-        child: Icon(icon, color: color, size: 18),
-      ),
-    );
-  }
-
-  Widget _statCard(
-      String label, String value, IconData icon, Color color, Color bg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2))),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 6),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold, color: color)),
-          Text(label,
-              style: TextStyle(fontSize: 10, color: color.withOpacity(0.7))),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title) {
-    return Row(
-      children: [
-        Container(
-            width: 4,
-            height: 20,
-            decoration: BoxDecoration(
-                color: kGreen, borderRadius: BorderRadius.circular(4))),
-        const SizedBox(width: 8),
-        Text(title,
-            style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1B5E20))),
-      ],
-    );
-  }
-
-  Widget _buildProfileTab() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
-    final totalEarnings = _orders
-        .where((o) => o.status == 'delivered')
-        .fold(0.0, (sum, o) => sum + o.totalAmount);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1B5E20), kGreen],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: kGreen.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.white,
-                    child: Text('👨‍🌾', style: TextStyle(fontSize: 38)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(_userName,
-                    style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
-                const SizedBox(height: 4),
-                const Text('9876543210',
-                    style: TextStyle(color: Colors.white70, fontSize: 13)),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.location_on_rounded,
-                        color: Colors.white70, size: 14),
-                    const SizedBox(width: 4),
-                    const Text('Pune, Maharashtra',
-                        style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.4)),
-                  ),
-                  child: const Text('🌾  Farmer',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                  child: _miniStatCard('${_products.length}', 'Products',
-                      Icons.inventory_2_rounded, kGreen, cardColor)),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: _miniStatCard('${_orders.length}', 'Orders',
-                      Icons.receipt_long_rounded, kAmber, cardColor)),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: _miniStatCard('4.8 ⭐', 'Rating', Icons.star_rounded,
-                      Colors.orange, cardColor)),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildProfileTile(Icons.inventory_2_rounded, 'My Products',
-              '${_products.length} products', kGreen, cardColor,
-              onTap: () => setState(() => _selectedIndex = 1)),
-          _buildProfileTile(Icons.receipt_long_rounded, 'My Orders',
-              '${_orders.length} orders', Colors.blue.shade700, cardColor,
-              onTap: () => setState(() => _selectedIndex = 2)),
-          _buildProfileTile(Icons.work_outline, 'My Job Posts',
-              '${_myJobs.length} active', Colors.deepPurple, cardColor,
-              onTap: () => setState(() => _selectedIndex = 3)),
-          _buildProfileTile(Icons.edit_note_rounded, 'Edit Profile',
-              'Update your details', Colors.purple.shade400, cardColor,
-              onTap: () => _showEditProfileDialog()),
-          _buildProfileTile(Icons.help_outline_rounded, 'Help & Support',
-              'support@krishilink.com', Colors.teal, cardColor,
-              onTap: () => _showInfoDialog('Help & Support',
-                  '📞 Helpline: 1800-123-4567\n📧 Email: support@krishilink.com\n\nAvailable Mon–Sat, 8 AM – 8 PM')),
-          _buildProfileTile(Icons.info_outline_rounded, 'About KrishiLink',
-              'Version 1.0.0', Colors.grey.shade600, cardColor,
-              onTap: () => _showInfoDialog('About KrishiLink',
-                  '🌾 KrishiLink connects farmers directly to buyers, eliminating middlemen and ensuring fair prices.\n\nVersion 1.0.0\n© 2024 KrishiLink')),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: OutlinedButton.icon(
-              onPressed: _confirmLogout,
-              icon: const Icon(Icons.logout_rounded, color: Colors.red),
-              label: const Text('Logout',
-                  style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16)),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniStatCard(
-      String value, String label, IconData icon, Color color, Color bg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 6),
-          Text(value,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: color, fontSize: 15)),
-          Text(label,
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileTile(IconData icon, String title, String subtitle,
-      Color color, Color cardColor,
-      {required VoidCallback onTap}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 5)
-        ],
-      ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: color, size: 22),
-        ),
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        subtitle: Text(subtitle,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-        trailing:
-            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
-  }
-
   void _confirmLogout() async {
     final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(children: [
-          const Icon(Icons.logout_rounded, color: Colors.red),
-          const SizedBox(width: 8),
-          const Text('Logout'),
-        ]),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, foregroundColor: Colors.white),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      Navigator.pushReplacementNamed(context, '/');
-    }
+        context: context,
+        builder: (_) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                title: const Row(children: [
+                  Icon(Icons.logout_rounded, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Logout')
+                ]),
+                content: const Text('Are you sure?'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel')),
+                  ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style:
+                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Logout'))
+                ]));
+    if (confirm == true) _logout();
   }
 
-  void _showInfoDialog(String title, String content) {
+  void _showInfo(String title, String content) {
     showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(content),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: kGreen, foregroundColor: Colors.white),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditProfileDialog() {
-    final nameCtrl = TextEditingController(text: _userName);
-    final locCtrl = TextEditingController(text: 'Pune, Maharashtra');
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Edit Profile',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: InputDecoration(
-                labelText: 'Your Name',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: locCtrl,
-              decoration: InputDecoration(
-                labelText: 'Location',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              setState(() {
-                _userName = nameCtrl.text;
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Profile updated!'), backgroundColor: kGreen),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: kGreen, foregroundColor: Colors.white),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder(String title) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.construction, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text('$title coming soon',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
-        ],
-      ),
-    );
+        context: context,
+        builder: (_) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                title: Text(title),
+                content: Text(content),
+                actions: [
+                  ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(backgroundColor: kGreen),
+                      child: const Text('Close'))
+                ]));
   }
 }
