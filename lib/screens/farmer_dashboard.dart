@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/product_model.dart';
 import '../models/order_model.dart';
 import '../models/job_model.dart';
+import '../utils/app_localizations.dart';
+import 'farmer_job_applications_screen.dart';
 
 class FarmerDashboard extends StatefulWidget {
   const FarmerDashboard({super.key});
@@ -939,7 +941,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
 
   Widget _buildJobsTab() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+
     if (_myJobs.isEmpty) {
       return Center(
         child: Column(
@@ -947,15 +951,20 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           children: [
             const Text('📋', style: TextStyle(fontSize: 50)),
             const SizedBox(height: 12),
-            const Text('No job posts yet',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              l10n?.translate('no_jobs') ?? 'No job posts yet',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 6),
-            const Text('Tap + to post a job',
-                style: TextStyle(color: Colors.grey)),
+            Text(
+              l10n?.translate('post_job') ?? 'Tap + to post a job',
+              style: const TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
     }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _myJobs.length,
@@ -964,25 +973,28 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
-              ]),
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6),
+            ],
+          ),
           child: ListTile(
             leading: const Icon(Icons.work, color: kGreen),
             title: Text(job.title,
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(
-                '${job.location} • ${job.formattedWage} • ${job.workersNeeded} needed'),
+              '${job.location} • ${job.formattedWage} • ${job.workersNeeded} ${l10n?.translate('workers_needed') ?? 'needed'}',
+            ),
             trailing: IconButton(
               icon: const Icon(Icons.people_rounded, color: kGreen),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(
-                          '${job.applicationsCount ?? 0} applications received'),
-                      backgroundColor: kGreen),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        FarmerJobApplicationsScreen(jobDocId: job.docId),
+                  ),
                 );
               },
             ),

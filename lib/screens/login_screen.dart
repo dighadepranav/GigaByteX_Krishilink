@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'farmer_dashboard.dart';
 import 'buyer_dashboard.dart';
 import 'job_board_screen.dart';
+import 'admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? selectedRole;
@@ -14,6 +16,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _adminUserCtrl = TextEditingController();
+  final _adminPassCtrl = TextEditingController();
   String _selectedRole = 'farmer';
 
   @override
@@ -25,6 +30,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _phoneController.dispose();
+    _nameController.dispose();
+    _adminUserCtrl.dispose();
+    _adminPassCtrl.dispose();
     super.dispose();
   }
 
@@ -65,7 +73,17 @@ class _LoginScreenState extends State<LoginScreen> {
     };
   }
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+    await prefs.setString('userRole', _selectedRole);
+    await prefs.setString('userName',
+        _nameController.text.isNotEmpty ? _nameController.text : _selectedRole);
+    await prefs.setString('userPhone', _phoneController.text);
+    await prefs.setString('userLocation', 'Pune, Maharashtra');
+
+    if (!mounted) return;
+
     if (_selectedRole == 'farmer') {
       Navigator.pushReplacement(
         context,
@@ -81,10 +99,22 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(builder: (_) => const JobBoardScreen()),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Admin login coming soon!')),
-      );
+    } else if (_selectedRole == 'admin') {
+      if (_adminUserCtrl.text.trim() == 'admin' &&
+          _adminPassCtrl.text.trim() == 'admin') {
+        await prefs.setString('userName', 'Admin');
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboard()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Invalid admin credentials'),
+              backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
