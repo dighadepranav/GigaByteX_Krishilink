@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'farmer_dashboard.dart';
+import 'buyer_dashboard.dart';
+import 'job_board_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? selectedRole;
+
   const LoginScreen({super.key, this.selectedRole});
 
   @override
@@ -68,9 +71,19 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(builder: (_) => const FarmerDashboard()),
       );
+    } else if (_selectedRole == 'buyer') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const BuyerDashboard()),
+      );
+    } else if (_selectedRole == 'worker') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const JobBoardScreen()),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Coming soon!')),
+        const SnackBar(content: Text('Admin login coming soon!')),
       );
     }
   }
@@ -96,7 +109,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(32)),
               ),
               child: Column(
                 children: [
@@ -110,7 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 16),
+                        child: const Icon(Icons.arrow_back_ios_new,
+                            color: Colors.white, size: 16),
                       ),
                     ),
                   ),
@@ -121,7 +136,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(meta['icon'] as IconData, size: 44, color: Colors.white),
+                    child: Icon(meta['icon'] as IconData,
+                        size: 44, color: Colors.white),
                   ),
                   const SizedBox(height: 14),
                   const Text(
@@ -135,14 +151,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${meta['emoji']}  ${meta['label']} Login',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -173,7 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       hintText: '10-digit number',
                       prefixIcon: const Icon(Icons.phone_rounded),
                       prefixText: '+91  ',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: roleColor, width: 2),
@@ -190,11 +211,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: roleColor,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
                       ),
                       child: const Text(
                         'Send OTP',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
