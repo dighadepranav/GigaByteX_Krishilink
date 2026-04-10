@@ -13,7 +13,11 @@ class KrishiLinkApp extends StatelessWidget {
     return MaterialApp(
       title: 'KrishiLink',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.green, useMaterial3: true),
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF5F7F0),
+      ),
       home: const SplashScreen(),
     );
   }

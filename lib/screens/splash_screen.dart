@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'landing_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,9 +12,13 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Stay on splash for 2 seconds then navigate (will be implemented later)
     Future.delayed(const Duration(seconds: 2), () {
-      // TODO: navigate to landing screen
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LandingScreen()),
+        );
+      }
     });
   }
 
