@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product_model.dart';
+import '../models/order_model.dart';
 
 class FarmerDashboard extends StatefulWidget {
   const FarmerDashboard({super.key});
@@ -10,14 +11,16 @@ class FarmerDashboard extends StatefulWidget {
 
 class _FarmerDashboardState extends State<FarmerDashboard> {
   int _selectedIndex = 0;
-  String _userName = 'Farmer';
+  String _userName = 'Ramesh Patel';
   List<ProductModel> _products = [];
+  List<OrderModel> _orders = [];
   static const kGreen = Color(0xFF2E7D32);
   static const kGreenLight = Color(0xFF66BB6A);
   static const kGreenBg = Color(0xFFF1F8E9);
   static const kAmber = Color(0xFFFF8F00);
 
   int _nextId = 4;
+  int _nextOrderId = 2;
 
   final List<ProductModel> _demoProducts = [
     ProductModel(
@@ -58,11 +61,32 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     ),
   ];
 
+  final List<OrderModel> _demoOrders = [
+    OrderModel(
+      id: 1,
+      productDocId: 'prod1',
+      productName: 'Fresh Tomatoes',
+      buyerId: 101,
+      buyerName: 'Amit Shah',
+      farmerId: 1,
+      farmerName: 'Ramesh Patel',
+      quantity: 10,
+      unit: 'kg',
+      price: 25,
+      totalAmount: 250,
+      status: 'pending',
+      trackingStatus: 'harvested',
+      orderDate: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
     _products = List.from(_demoProducts);
+    _orders = List.from(_demoOrders);
     _nextId = _products.length + 1;
+    _nextOrderId = _orders.length + 1;
   }
 
   static const Map<String, String> _cropEmoji = {
@@ -277,6 +301,23 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     );
   }
 
+  Future<void> _updateOrderStatus(
+      String docId, String status, String trackingStatus) async {
+    setState(() {
+      final index = _orders.indexWhere((o) => o.docId == docId);
+      if (index != -1) {
+        _orders[index] = _orders[index]
+            .copyWith(status: status, trackingStatus: trackingStatus);
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text('Order $status'),
+          backgroundColor: kGreen,
+          behavior: SnackBarBehavior.floating),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -302,7 +343,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         children: [
           _buildHomeTab(),
           _buildProductsTab(),
-          _buildPlaceholder('Orders'),
+          _buildOrdersTab(),
           _buildPlaceholder('Job Requests'),
           _buildPlaceholder('Profile'),
         ],
@@ -343,7 +384,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   Widget _buildHomeTab() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
-    final totalEarnings = 0.0;
+    final totalEarnings = _orders
+        .where((o) => o.status == 'delivered')
+        .fold(0.0, (sum, o) => sum + o.totalAmount);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -410,7 +453,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
               Expanded(
                   child: _statCard(
                       'Orders',
-                      '0',
+                      '${_orders.length}',
                       Icons.receipt_long_rounded,
                       kAmber,
                       isDark
@@ -602,6 +645,160 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     );
   }
 
+  Widget _buildOrdersTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    if (_orders.isEmpty) {
+      return Center(
+          child: Text('No orders yet',
+              style: TextStyle(color: Colors.grey.shade600)));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _orders.length,
+      itemBuilder: (context, index) {
+        final order = _orders[index];
+        final (color, label, icon) = _orderStatus(order.status);
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
+              ]),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Order #${order.id}',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.grey.shade500)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: color.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: 12, color: color),
+                          const SizedBox(width: 4),
+                          Text(label,
+                              style: TextStyle(
+                                  color: color,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                    '${_emojiFor(order.productName)}  ${order.productName} — ${order.quantity} ${order.unit}',
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.storefront_rounded,
+                        size: 14, color: Colors.grey.shade500),
+                    const SizedBox(width: 4),
+                    Text(order.buyerName,
+                        style: TextStyle(
+                            color: Colors.grey.shade600, fontSize: 13)),
+                    const Spacer(),
+                    Text('₹${order.totalAmount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: kGreen,
+                            fontSize: 16)),
+                  ],
+                ),
+                if (order.status == 'pending')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _updateOrderStatus(
+                                order.docId, 'confirmed', 'packed'),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white),
+                            child: const Text('Accept'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _updateOrderStatus(
+                                order.docId, 'cancelled', 'cancelled'),
+                            style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red),
+                            child: const Text('Reject'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (order.status == 'confirmed' &&
+                    order.trackingStatus != 'delivered')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Row(
+                      children: [
+                        if (order.trackingStatus == 'packed')
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _updateOrderStatus(
+                                  order.docId, 'processing', 'in_transit'),
+                              child: const Text('Mark In Transit'),
+                            ),
+                          ),
+                        if (order.trackingStatus == 'in_transit')
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _updateOrderStatus(
+                                  order.docId, 'delivered', 'delivered'),
+                              child: const Text('Mark Delivered'),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  (Color, String, IconData) _orderStatus(String s) {
+    switch (s) {
+      case 'delivered':
+        return (Colors.green, 'DELIVERED', Icons.check_circle_rounded);
+      case 'in_transit':
+        return (Colors.blue, 'IN TRANSIT', Icons.local_shipping_rounded);
+      case 'confirmed':
+        return (Colors.orange, 'CONFIRMED', Icons.check_circle_outline);
+      case 'cancelled':
+        return (Colors.red, 'CANCELLED', Icons.cancel);
+      default:
+        return (Colors.orange, 'PENDING', Icons.hourglass_empty_rounded);
+    }
+  }
+
   Widget _actionBtn(IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -666,6 +863,53 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
               style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
         ],
       ),
+    );
+  }
+}
+
+// Add copyWith method to OrderModel (add at the end of OrderModel class in order_model.dart)
+extension OrderModelCopyWith on OrderModel {
+  OrderModel copyWith({
+    String? docId,
+    int? id,
+    String? productDocId,
+    String? productName,
+    String? buyerUid,
+    int? buyerId,
+    String? buyerName,
+    String? farmerUid,
+    int? farmerId,
+    String? farmerName,
+    double? quantity,
+    String? unit,
+    double? price,
+    double? totalAmount,
+    String? status,
+    String? trackingStatus,
+    DateTime? orderDate,
+    DateTime? deliveredDate,
+    String? deliveryAddress,
+  }) {
+    return OrderModel(
+      docId: docId ?? this.docId,
+      id: id ?? this.id,
+      productDocId: productDocId ?? this.productDocId,
+      productName: productName ?? this.productName,
+      buyerUid: buyerUid ?? this.buyerUid,
+      buyerId: buyerId ?? this.buyerId,
+      buyerName: buyerName ?? this.buyerName,
+      farmerUid: farmerUid ?? this.farmerUid,
+      farmerId: farmerId ?? this.farmerId,
+      farmerName: farmerName ?? this.farmerName,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      price: price ?? this.price,
+      totalAmount: totalAmount ?? this.totalAmount,
+      status: status ?? this.status,
+      trackingStatus: trackingStatus ?? this.trackingStatus,
+      orderDate: orderDate ?? this.orderDate,
+      deliveredDate: deliveredDate ?? this.deliveredDate,
+      deliveryAddress: deliveryAddress ?? this.deliveryAddress,
     );
   }
 }
