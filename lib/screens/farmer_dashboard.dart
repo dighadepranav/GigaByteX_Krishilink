@@ -489,7 +489,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           _buildProductsTab(),
           _buildOrdersTab(),
           _buildJobsTab(),
-          _buildPlaceholder('Profile'),
+          _buildProfileTab(),
         ],
       ),
       floatingActionButton: _selectedIndex == 1
@@ -1085,6 +1085,307 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1B5E20))),
       ],
+    );
+  }
+
+  Widget _buildProfileTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final totalEarnings = _orders
+        .where((o) => o.status == 'delivered')
+        .fold(0.0, (sum, o) => sum + o.totalAmount);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1B5E20), kGreen],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: kGreen.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white,
+                    child: Text('👨‍🌾', style: TextStyle(fontSize: 38)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(_userName,
+                    style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
+                const SizedBox(height: 4),
+                const Text('9876543210',
+                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.location_on_rounded,
+                        color: Colors.white70, size: 14),
+                    const SizedBox(width: 4),
+                    const Text('Pune, Maharashtra',
+                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.4)),
+                  ),
+                  child: const Text('🌾  Farmer',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                  child: _miniStatCard('${_products.length}', 'Products',
+                      Icons.inventory_2_rounded, kGreen, cardColor)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _miniStatCard('${_orders.length}', 'Orders',
+                      Icons.receipt_long_rounded, kAmber, cardColor)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _miniStatCard('4.8 ⭐', 'Rating', Icons.star_rounded,
+                      Colors.orange, cardColor)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildProfileTile(Icons.inventory_2_rounded, 'My Products',
+              '${_products.length} products', kGreen, cardColor,
+              onTap: () => setState(() => _selectedIndex = 1)),
+          _buildProfileTile(Icons.receipt_long_rounded, 'My Orders',
+              '${_orders.length} orders', Colors.blue.shade700, cardColor,
+              onTap: () => setState(() => _selectedIndex = 2)),
+          _buildProfileTile(Icons.work_outline, 'My Job Posts',
+              '${_myJobs.length} active', Colors.deepPurple, cardColor,
+              onTap: () => setState(() => _selectedIndex = 3)),
+          _buildProfileTile(Icons.edit_note_rounded, 'Edit Profile',
+              'Update your details', Colors.purple.shade400, cardColor,
+              onTap: () => _showEditProfileDialog()),
+          _buildProfileTile(Icons.help_outline_rounded, 'Help & Support',
+              'support@krishilink.com', Colors.teal, cardColor,
+              onTap: () => _showInfoDialog('Help & Support',
+                  '📞 Helpline: 1800-123-4567\n📧 Email: support@krishilink.com\n\nAvailable Mon–Sat, 8 AM – 8 PM')),
+          _buildProfileTile(Icons.info_outline_rounded, 'About KrishiLink',
+              'Version 1.0.0', Colors.grey.shade600, cardColor,
+              onTap: () => _showInfoDialog('About KrishiLink',
+                  '🌾 KrishiLink connects farmers directly to buyers, eliminating middlemen and ensuring fair prices.\n\nVersion 1.0.0\n© 2024 KrishiLink')),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: _confirmLogout,
+              icon: const Icon(Icons.logout_rounded, color: Colors.red),
+              label: const Text('Logout',
+                  style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniStatCard(
+      String value, String label, IconData icon, Color color, Color bg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: color, fontSize: 15)),
+          Text(label,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileTile(IconData icon, String title, String subtitle,
+      Color color, Color cardColor,
+      {required VoidCallback onTap}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 5)
+        ],
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 22),
+        ),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        subtitle: Text(subtitle,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        trailing:
+            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  void _confirmLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(children: [
+          const Icon(Icons.logout_rounded, color: Colors.red),
+          const SizedBox(width: 8),
+          const Text('Logout'),
+        ]),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      Navigator.pushReplacementNamed(context, '/');
+    }
+  }
+
+  void _showInfoDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(content),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kGreen, foregroundColor: Colors.white),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditProfileDialog() {
+    final nameCtrl = TextEditingController(text: _userName);
+    final locCtrl = TextEditingController(text: 'Pune, Maharashtra');
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Edit Profile',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                labelText: 'Your Name',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: locCtrl,
+              decoration: InputDecoration(
+                labelText: 'Location',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              setState(() {
+                _userName = nameCtrl.text;
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Profile updated!'), backgroundColor: kGreen),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kGreen, foregroundColor: Colors.white),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'landing_screen.dart';
+import 'farmer_dashboard.dart';
+import 'buyer_dashboard.dart';
+import 'job_board_screen.dart';
+import 'admin_dashboard.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,14 +18,47 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LandingScreen()),
-        );
-      }
-    });
+    _navigate();
+  }
+
+  Future<void> _navigate() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final role = prefs.getString('userRole') ?? '';
+
+    if (!isLoggedIn || role.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LandingScreen()),
+      );
+      return;
+    }
+
+    Widget dest;
+    switch (role) {
+      case 'farmer':
+        dest = const FarmerDashboard();
+        break;
+      case 'buyer':
+        dest = const BuyerDashboard();
+        break;
+      case 'worker':
+        dest = const JobBoardScreen();
+        break;
+      case 'admin':
+        dest = const AdminDashboard();
+        break;
+      default:
+        dest = const LandingScreen();
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => dest),
+    );
   }
 
   @override
