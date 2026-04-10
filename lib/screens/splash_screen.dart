@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'landing_screen.dart';
 import 'farmer_dashboard.dart';
 import 'buyer_dashboard.dart';
@@ -14,11 +13,34 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeIn,
+    ));
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutBack,
+    ));
+    _controller.forward();
     _navigate();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _navigate() async {
@@ -30,10 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final role = prefs.getString('userRole') ?? '';
 
     if (!isLoggedIn || role.isEmpty) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LandingScreen()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LandingScreen()));
       return;
     }
 
@@ -55,10 +74,7 @@ class _SplashScreenState extends State<SplashScreen> {
         dest = const LandingScreen();
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => dest),
-    );
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => dest));
   }
 
   @override
@@ -73,41 +89,47 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         ),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.agriculture,
-                  size: 80,
-                  color: Color(0xFF2E7D32),
-                ),
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.agriculture,
+                      size: 80,
+                      color: Color(0xFF2E7D32),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    'KrishiLink',
+                    style: TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Empowering Rural India',
+                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                  ),
+                  const SizedBox(height: 60),
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ],
               ),
-              const SizedBox(height: 30),
-              const Text(
-                'KrishiLink',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Empowering Rural India',
-                style: TextStyle(fontSize: 16, color: Colors.white70),
-              ),
-              const SizedBox(height: 60),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ],
+            ),
           ),
         ),
       ),
