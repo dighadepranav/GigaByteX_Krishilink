@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product_model.dart';
 import '../models/order_model.dart';
+import '../models/job_model.dart';
 
 class FarmerDashboard extends StatefulWidget {
   const FarmerDashboard({super.key});
@@ -14,6 +15,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   String _userName = 'Ramesh Patel';
   List<ProductModel> _products = [];
   List<OrderModel> _orders = [];
+  List<JobModel> _myJobs = [];
   static const kGreen = Color(0xFF2E7D32);
   static const kGreenLight = Color(0xFF66BB6A);
   static const kGreenBg = Color(0xFFF1F8E9);
@@ -21,6 +23,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
 
   int _nextId = 4;
   int _nextOrderId = 2;
+  int _nextJobId = 2;
 
   final List<ProductModel> _demoProducts = [
     ProductModel(
@@ -80,13 +83,32 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     ),
   ];
 
+  final List<JobModel> _demoJobs = [
+    JobModel(
+      id: 1,
+      farmerId: 1,
+      farmerName: 'Ramesh Patel',
+      title: 'Harvesting Helper',
+      description: 'Need workers for tomato harvesting',
+      location: 'Pune',
+      wage: 350,
+      duration: '5 days',
+      workersNeeded: 10,
+      status: 'open',
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      applicationsCount: 3,
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
     _products = List.from(_demoProducts);
     _orders = List.from(_demoOrders);
+    _myJobs = List.from(_demoJobs);
     _nextId = _products.length + 1;
     _nextOrderId = _orders.length + 1;
+    _nextJobId = _myJobs.length + 1;
   }
 
   static const Map<String, String> _cropEmoji = {
@@ -257,6 +279,128 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     );
   }
 
+  void _showPostJobDialog() {
+    final titleCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final locCtrl = TextEditingController();
+    final wageCtrl = TextEditingController();
+    final durationCtrl = TextEditingController();
+    final workersCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboardPadding),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('➕  Post a Job',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: kGreen)),
+                  const SizedBox(height: 16),
+                  _inputField(titleCtrl, 'Job Title', 'e.g. Harvesting Helper'),
+                  const SizedBox(height: 12),
+                  _inputField(descCtrl, 'Description', 'Details about work'),
+                  const SizedBox(height: 12),
+                  _inputField(locCtrl, 'Location', 'City / Village'),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _inputField(wageCtrl, 'Wage (₹/day)', '',
+                              isNumber: true)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                          child: _inputField(
+                              durationCtrl, 'Duration', 'e.g. 3 days')),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _inputField(workersCtrl, 'Workers Needed', '',
+                      isNumber: true),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (titleCtrl.text.isNotEmpty) {
+                          final newJob = JobModel(
+                            docId: DateTime.now()
+                                .millisecondsSinceEpoch
+                                .toString(),
+                            id: _nextJobId,
+                            farmerId: 1,
+                            farmerUid: 'farmer_uid',
+                            farmerName: _userName,
+                            title: titleCtrl.text.trim(),
+                            description: descCtrl.text.trim(),
+                            location: locCtrl.text.trim(),
+                            wage: double.tryParse(wageCtrl.text) ?? 0,
+                            duration: durationCtrl.text.trim(),
+                            workersNeeded: int.tryParse(workersCtrl.text) ?? 1,
+                            status: 'open',
+                            createdAt: DateTime.now(),
+                            applicationsCount: 0,
+                          );
+                          setState(() {
+                            _myJobs.insert(0, newJob);
+                            _nextJobId++;
+                          });
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Job posted successfully!'),
+                                backgroundColor: kGreen,
+                                behavior: SnackBarBehavior.floating),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kGreen,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text('Post Job',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _inputField(TextEditingController ctrl, String label, String hint,
       {bool isNumber = false}) {
     return TextFormField(
@@ -344,7 +488,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           _buildHomeTab(),
           _buildProductsTab(),
           _buildOrdersTab(),
-          _buildPlaceholder('Job Requests'),
+          _buildJobsTab(),
           _buildPlaceholder('Profile'),
         ],
       ),
@@ -357,7 +501,16 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
               label: const Text('Add Product',
                   style: TextStyle(fontWeight: FontWeight.bold)),
             )
-          : null,
+          : (_selectedIndex == 3
+              ? FloatingActionButton.extended(
+                  onPressed: _showPostJobDialog,
+                  backgroundColor: kGreen,
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.post_add),
+                  label: const Text('Post Job',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                )
+              : null),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),
@@ -784,6 +937,89 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     );
   }
 
+  Widget _buildJobsTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    if (_myJobs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('📋', style: TextStyle(fontSize: 50)),
+            const SizedBox(height: 12),
+            const Text('No job posts yet',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            const Text('Tap + to post a job',
+                style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _myJobs.length,
+      itemBuilder: (context, index) {
+        final job = _myJobs[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
+              ]),
+          child: ListTile(
+            leading: const Icon(Icons.work, color: kGreen),
+            title: Text(job.title,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(
+                '${job.location} • ${job.formattedWage} • ${job.workersNeeded} needed'),
+            trailing: IconButton(
+              icon: const Icon(Icons.people_rounded, color: kGreen),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text(
+                          '${job.applicationsCount ?? 0} applications received'),
+                      backgroundColor: kGreen),
+                );
+              },
+            ),
+            onTap: () => _showJobDetails(job),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showJobDetails(JobModel job) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(job.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Location: ${job.location}'),
+            Text('Wage: ${job.formattedWage}'),
+            Text('Duration: ${job.duration}'),
+            Text('Workers Needed: ${job.workersNeeded}'),
+            const SizedBox(height: 8),
+            Text('Description: ${job.description}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close')),
+        ],
+      ),
+    );
+  }
+
   (Color, String, IconData) _orderStatus(String s) {
     switch (s) {
       case 'delivered':
@@ -863,53 +1099,6 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
               style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
         ],
       ),
-    );
-  }
-}
-
-// Add copyWith method to OrderModel (add at the end of OrderModel class in order_model.dart)
-extension OrderModelCopyWith on OrderModel {
-  OrderModel copyWith({
-    String? docId,
-    int? id,
-    String? productDocId,
-    String? productName,
-    String? buyerUid,
-    int? buyerId,
-    String? buyerName,
-    String? farmerUid,
-    int? farmerId,
-    String? farmerName,
-    double? quantity,
-    String? unit,
-    double? price,
-    double? totalAmount,
-    String? status,
-    String? trackingStatus,
-    DateTime? orderDate,
-    DateTime? deliveredDate,
-    String? deliveryAddress,
-  }) {
-    return OrderModel(
-      docId: docId ?? this.docId,
-      id: id ?? this.id,
-      productDocId: productDocId ?? this.productDocId,
-      productName: productName ?? this.productName,
-      buyerUid: buyerUid ?? this.buyerUid,
-      buyerId: buyerId ?? this.buyerId,
-      buyerName: buyerName ?? this.buyerName,
-      farmerUid: farmerUid ?? this.farmerUid,
-      farmerId: farmerId ?? this.farmerId,
-      farmerName: farmerName ?? this.farmerName,
-      quantity: quantity ?? this.quantity,
-      unit: unit ?? this.unit,
-      price: price ?? this.price,
-      totalAmount: totalAmount ?? this.totalAmount,
-      status: status ?? this.status,
-      trackingStatus: trackingStatus ?? this.trackingStatus,
-      orderDate: orderDate ?? this.orderDate,
-      deliveredDate: deliveredDate ?? this.deliveredDate,
-      deliveryAddress: deliveryAddress ?? this.deliveryAddress,
     );
   }
 }
