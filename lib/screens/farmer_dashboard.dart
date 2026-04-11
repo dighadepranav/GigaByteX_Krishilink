@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../utils/app_localizations.dart';
+import '../utils/theme_provider.dart';
+import '../utils/locale_provider.dart';
 import '../services/firestore_service.dart';
 import '../models/product_model.dart';
 import '../models/order_model.dart';
 import '../models/job_model.dart';
 import 'landing_screen.dart';
 import 'farmer_job_applications_screen.dart';
-import 'marketplace_screen.dart';
 
 class FarmerDashboard extends StatefulWidget {
   const FarmerDashboard({super.key});
@@ -37,8 +39,6 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   StreamSubscription? _productsSub;
   StreamSubscription? _ordersSub;
   StreamSubscription? _jobsSub;
-
-  final FirestoreService _firestoreService = FirestoreService();
 
   static const Map<String, String> _cropEmoji = {
     'tomato': '🍅',
@@ -85,16 +85,16 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     _jobsSub?.cancel();
 
     _productsSub =
-        _firestoreService.streamFarmerProducts(_userUid).listen((products) {
+        FirestoreService().streamFarmerProducts(_userUid).listen((products) {
       if (mounted) setState(() => _products = products);
     });
 
     _ordersSub =
-        _firestoreService.streamFarmerOrders(_userUid).listen((orders) {
+        FirestoreService().streamFarmerOrders(_userUid).listen((orders) {
       if (mounted) setState(() => _orders = orders);
     });
 
-    _jobsSub = _firestoreService.streamFarmerJobs(_userUid).listen((jobs) {
+    _jobsSub = FirestoreService().streamFarmerJobs(_userUid).listen((jobs) {
       if (mounted) setState(() => _myJobs = jobs);
     });
   }
@@ -115,12 +115,19 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         MaterialPageRoute(builder: (_) => const LandingScreen()), (_) => false);
   }
 
-  void _showAddProductDialog() {
-    final nameCtrl = TextEditingController();
-    final qtyCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    final marketCtrl = TextEditingController();
-    String unit = 'kg';
+  void _showAddProductDialog() => _showProductDialog(null);
+
+  void _showProductDialog(ProductModel? existing) {
+    final l10n = AppLocalizations.of(context);
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final qtyCtrl =
+        TextEditingController(text: existing?.quantity.toString() ?? '');
+    final priceCtrl =
+        TextEditingController(text: existing?.price.toString() ?? '');
+    final marketCtrl =
+        TextEditingController(text: existing?.marketPrice.toString() ?? '');
+    String unit = existing?.unit ?? 'kg';
+    final isEdit = existing != null;
 
     showModalBottomSheet(
       context: context,
@@ -128,7 +135,10 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
       backgroundColor: Colors.transparent,
       builder: (_) => StatefulBuilder(
         builder: (context, setSheetState) {
-          final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
+          final keyboardPadding = MediaQuery.of(context)
+              .viewInsets
+              .bottom
+              .clamp(0.0, double.infinity);
           return Padding(
             padding: EdgeInsets.only(bottom: keyboardPadding),
             child: Container(
@@ -149,18 +159,24 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                               color: Colors.grey.shade300,
                               borderRadius: BorderRadius.circular(4)))),
                   const SizedBox(height: 16),
-                  const Text('➕  Add Product',
-                      style: TextStyle(
+                  Text(
+                      isEdit
+                          ? '✏️  ${l10n?.translate('edit_product') ?? 'Edit Product'}'
+                          : '➕  ${l10n?.translate('add_product') ?? 'Add Product'}',
+                      style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: kGreen)),
                   const SizedBox(height: 16),
                   _inputField(
-                      nameCtrl, 'Product Name', '🌾 e.g. Fresh Tomatoes'),
+                      nameCtrl,
+                      l10n?.translate('product_name') ?? 'Product Name',
+                      '🌾  e.g. Fresh Tomatoes'),
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(
-                        child: _inputField(qtyCtrl, 'Quantity', '',
+                        child: _inputField(qtyCtrl,
+                            l10n?.translate('quantity') ?? 'Quantity', '',
                             isNumber: true)),
                     const SizedBox(width: 10),
                     SizedBox(
@@ -169,7 +185,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                           value: unit,
                           isExpanded: true,
                           decoration: InputDecoration(
-                              labelText: 'Unit',
+                              labelText: l10n?.translate('unit') ?? 'Unit',
                               border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12)),
                               contentPadding: const EdgeInsets.symmetric(
@@ -185,11 +201,15 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(
-                        child: _inputField(priceCtrl, 'Price (₹)', '',
+                        child: _inputField(priceCtrl,
+                            '${l10n?.translate('price') ?? 'Price'} (₹)', '',
                             isNumber: true)),
                     const SizedBox(width: 10),
                     Expanded(
-                        child: _inputField(marketCtrl, 'Market Price (₹)', '',
+                        child: _inputField(
+                            marketCtrl,
+                            '${l10n?.translate('market_price') ?? 'Market Price'} (₹)',
+                            '',
                             isNumber: true)),
                   ]),
                   const SizedBox(height: 20),
@@ -205,8 +225,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                             final marketPrice =
                                 double.tryParse(marketCtrl.text) ?? price;
                             final newProduct = ProductModel(
-                              docId: '',
-                              id: DateTime.now().millisecondsSinceEpoch,
+                              docId: existing?.docId ?? '',
+                              id: existing?.id ??
+                                  DateTime.now().millisecondsSinceEpoch,
                               farmerId: 0,
                               farmerUid: _userUid,
                               farmerName: _userName,
@@ -222,8 +243,13 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                             );
                             setState(() => _isLoading = true);
                             try {
-                              await _firestoreService.addProduct(
-                                  newProduct, _userUid);
+                              if (isEdit) {
+                                await FirestoreService()
+                                    .updateProduct(newProduct);
+                              } else {
+                                await FirestoreService()
+                                    .addProduct(newProduct, _userUid);
+                              }
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -244,125 +270,12 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14))),
-                        child: const Text('Add Product',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                      )),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showPostJobDialog() {
-    final titleCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final locCtrl = TextEditingController();
-    final wageCtrl = TextEditingController();
-    final durationCtrl = TextEditingController();
-    final workersCtrl = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
-          return Padding(
-            padding: EdgeInsets.only(bottom: keyboardPadding),
-            child: Container(
-              decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(24))),
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                      child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(4)))),
-                  const SizedBox(height: 16),
-                  const Text('➕  Post a Job',
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: kGreen)),
-                  const SizedBox(height: 16),
-                  _inputField(titleCtrl, 'Job Title', 'e.g. Harvesting Helper'),
-                  const SizedBox(height: 12),
-                  _inputField(descCtrl, 'Description', 'Details about work'),
-                  const SizedBox(height: 12),
-                  _inputField(locCtrl, 'Location', 'City / Village'),
-                  const SizedBox(height: 12),
-                  Row(children: [
-                    Expanded(
-                        child: _inputField(wageCtrl, 'Wage (₹/day)', '',
-                            isNumber: true)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                        child: _inputField(
-                            durationCtrl, 'Duration', 'e.g. 3 days')),
-                  ]),
-                  const SizedBox(height: 12),
-                  _inputField(workersCtrl, 'Workers Needed', '',
-                      isNumber: true),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          if (titleCtrl.text.isNotEmpty) {
-                            final job = JobModel(
-                              id: DateTime.now().millisecondsSinceEpoch,
-                              farmerId: 0,
-                              farmerUid: _userUid,
-                              farmerName: _userName,
-                              title: titleCtrl.text.trim(),
-                              description: descCtrl.text.trim(),
-                              location: locCtrl.text.trim(),
-                              wage: double.tryParse(wageCtrl.text) ?? 0,
-                              duration: durationCtrl.text.trim(),
-                              workersNeeded:
-                                  int.tryParse(workersCtrl.text) ?? 1,
-                              status: 'open',
-                              createdAt: DateTime.now(),
-                            );
-                            setState(() => _isLoading = true);
-                            try {
-                              await _firestoreService.addJob(job, _userUid);
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Job posted!'),
-                                      backgroundColor: kGreen));
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text('Error: $e'),
-                                      backgroundColor: Colors.red));
-                            } finally {
-                              setState(() => _isLoading = false);
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: kGreen,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14))),
-                        child: const Text('Post Job',
-                            style: TextStyle(
+                        child: Text(
+                            isEdit
+                                ? (l10n?.translate('save') ?? 'Save')
+                                : (l10n?.translate('add_product') ??
+                                    'Add Product'),
+                            style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
                       )),
                 ],
@@ -389,11 +302,185 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     );
   }
 
+  void _showPostJobDialog() {
+    final l10n = AppLocalizations.of(context);
+    final titleCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final locCtrl = TextEditingController();
+    final wageCtrl = TextEditingController();
+    final durationCtrl = TextEditingController();
+    final workersCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final keyboardPadding = MediaQuery.of(context)
+              .viewInsets
+              .bottom
+              .clamp(0.0, double.infinity);
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboardPadding),
+            child: Container(
+              decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(24))),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                      child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(4)))),
+                  const SizedBox(height: 16),
+                  Text('➕  ${l10n?.translate('post_job') ?? 'Post a Job'}',
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: kGreen)),
+                  const SizedBox(height: 16),
+                  _inputField(
+                      titleCtrl,
+                      l10n?.translate('job_title') ?? 'Job Title',
+                      'e.g. Harvesting Helper'),
+                  const SizedBox(height: 12),
+                  _inputField(
+                      descCtrl,
+                      l10n?.translate('description') ?? 'Description',
+                      'Details about work'),
+                  const SizedBox(height: 12),
+                  _inputField(
+                      locCtrl,
+                      l10n?.translate('location') ?? 'Location',
+                      'City / Village'),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                        child: _inputField(wageCtrl,
+                            '${l10n?.translate('wage') ?? 'Wage'} (₹/day)', '',
+                            isNumber: true)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: _inputField(
+                            durationCtrl,
+                            l10n?.translate('duration') ?? 'Duration',
+                            'e.g. 3 days')),
+                  ]),
+                  const SizedBox(height: 12),
+                  _inputField(workersCtrl,
+                      l10n?.translate('workers_needed') ?? 'Workers Needed', '',
+                      isNumber: true),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (titleCtrl.text.isNotEmpty) {
+                            final job = JobModel(
+                              id: DateTime.now().millisecondsSinceEpoch,
+                              farmerId: 0,
+                              farmerUid: _userUid,
+                              farmerName: _userName,
+                              title: titleCtrl.text.trim(),
+                              description: descCtrl.text.trim(),
+                              location: locCtrl.text.trim(),
+                              wage: double.tryParse(wageCtrl.text) ?? 0,
+                              duration: durationCtrl.text.trim(),
+                              workersNeeded:
+                                  int.tryParse(workersCtrl.text) ?? 1,
+                              status: 'open',
+                              createdAt: DateTime.now(),
+                            );
+                            setState(() => _isLoading = true);
+                            try {
+                              await FirestoreService().addJob(job, _userUid);
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Job posted!'),
+                                      backgroundColor: kGreen));
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: Colors.red));
+                            } finally {
+                              setState(() => _isLoading = false);
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: kGreen,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14))),
+                        child: Text(l10n?.translate('post_job') ?? 'Post Job',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                      )),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // DELETE JOB (added in commit 27)
+  // ───────────────────────────────────────────────────────────────────────────
+  Future<void> _deleteJob(String jobDocId) async {
+    final l10n = AppLocalizations.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n?.translate('delete_job') ?? 'Delete Job'),
+        content: Text(l10n?.translate('delete_job_confirm') ??
+            'Are you sure you want to delete this job?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n?.translate('cancel') ?? 'Cancel')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text(l10n?.translate('delete') ?? 'Delete')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    setState(() => _isLoading = true);
+    try {
+      await FirestoreService().deleteJob(jobDocId);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              l10n?.translate('job_deleted') ?? 'Job deleted successfully'),
+          backgroundColor: Colors.green));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${l10n?.translate('error_prefix') ?? 'Error'}: $e'),
+          backgroundColor: Colors.red));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _updateOrderStatus(
       String docId, String status, String trackingStatus) async {
     setState(() => _isLoading = true);
     try {
-      await _firestoreService.updateOrderStatus(docId, status, trackingStatus);
+      await FirestoreService().updateOrderStatus(docId, status, trackingStatus);
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Order $status'), backgroundColor: kGreen));
     } catch (e) {
@@ -416,8 +503,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Text(l10n?.translate('exit_app') ?? 'Exit App'),
-            content:
-                Text(l10n?.translate('exit_confirm') ?? 'Do you want to exit?'),
+            content: Text(l10n?.translate('exit_confirm') ??
+                'Do you want to exit KrishiLink?'),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context, false),
@@ -435,7 +522,10 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: Row(children: [
-            const Icon(Icons.eco, color: Colors.white, size: 26),
+            Image.asset('assets/images/logo.png',
+                height: 28,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.eco, color: Colors.white, size: 26)),
             const SizedBox(width: 8),
             Text(l10n?.translate('app_name') ?? 'KrishiLink',
                 style: const TextStyle(
@@ -698,7 +788,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                   ])),
               Column(children: [
                 GestureDetector(
-                    onTap: () {},
+                    onTap: () => _showProductDialog(product),
                     child: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
@@ -709,7 +799,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                 const SizedBox(height: 6),
                 GestureDetector(
                     onTap: () async {
-                      await _firestoreService.deleteProduct(product.docId);
+                      await FirestoreService().deleteProduct(product.docId);
                     },
                     child: Container(
                         padding: const EdgeInsets.all(7),
@@ -797,7 +887,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                       Expanded(
                           child: OutlinedButton(
                               onPressed: () => _updateOrderStatus(
-                                  order.docId, 'cancelled', 'cancelled'),
+                                  order.docId, 'rejected', 'cancelled'),
                               style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.red),
                               child: const Text('Reject'))),
@@ -827,6 +917,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     );
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // JOBS TAB WITH DELETE BUTTON (updated in commit 27)
+  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildJobsTab() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
@@ -854,15 +947,20 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(
                 '${job.location} • ${job.formattedWage} • ${job.workersNeeded} needed'),
-            trailing: IconButton(
-                icon: const Icon(Icons.people_rounded, color: kGreen),
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => FarmerJobApplicationsScreen(
-                              jobDocId: job.docId)));
-                }),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(
+                  icon: const Icon(Icons.people_rounded, color: kGreen),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => FarmerJobApplicationsScreen(
+                                jobDocId: job.docId)));
+                  }),
+              IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => _deleteJob(job.docId)),
+            ]),
             onTap: () => _showJobDetails(job),
           ),
         );
@@ -899,6 +997,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   Widget _buildProfileTab() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(children: [
@@ -985,12 +1085,37 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             cardColor,
             () => setState(() => _selectedIndex = 3)),
         _profileTile(
+            Icons.brightness_6_rounded,
+            'Dark Mode',
+            themeProvider.isDarkMode ? 'Enabled' : 'Disabled',
+            Colors.purple,
+            cardColor,
+            () => themeProvider.toggleTheme()),
+        _profileTile(
+            Icons.language_rounded,
+            'Language',
+            localeProvider.locale.languageCode == 'en'
+                ? 'English'
+                : (localeProvider.locale.languageCode == 'hi'
+                    ? 'हिंदी'
+                    : 'मराठी'),
+            Colors.teal,
+            cardColor,
+            () => _showLanguageDialog()),
+        _profileTile(
+            Icons.edit_note_rounded,
+            'Edit Profile',
+            'Update your details',
+            Colors.purple.shade400,
+            cardColor,
+            _showEditProfileDialog),
+        _profileTile(
             Icons.help_outline_rounded,
             'Help & Support',
             'support@krishilink.com',
             Colors.teal,
             cardColor,
-            () => _showInfo('Help & Support',
+            () => _showInfoDialog('Help & Support',
                 '📞 Helpline: 1800-123-4567\n📧 Email: support@krishilink.com')),
         _profileTile(
             Icons.info_outline_rounded,
@@ -998,7 +1123,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             'Version 1.0.0',
             Colors.grey.shade600,
             cardColor,
-            () => _showInfo('About KrishiLink',
+            () => _showInfoDialog('About KrishiLink',
                 '🌾 KrishiLink connects farmers directly to buyers.\n\nVersion 1.0.0\n© 2024 KrishiLink')),
         const SizedBox(height: 20),
         SizedBox(
@@ -1017,6 +1142,46 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14))))),
       ]),
+    );
+  }
+
+  void _showLanguageDialog() {
+    final l10n = AppLocalizations.of(context);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n?.translate('language') ?? 'Select Language'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text(l10n?.translate('english') ?? 'English'),
+              onTap: () async {
+                await localeProvider.setLocale('en');
+                if (mounted) Navigator.pop(context);
+              }),
+          ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text(l10n?.translate('hindi') ?? 'Hindi'),
+              onTap: () async {
+                await localeProvider.setLocale('hi');
+                if (mounted) Navigator.pop(context);
+              }),
+          ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text(l10n?.translate('marathi') ?? 'Marathi'),
+              onTap: () async {
+                await localeProvider.setLocale('mr');
+                if (mounted) Navigator.pop(context);
+              }),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n?.translate('close') ?? 'Close'))
+        ],
+      ),
     );
   }
 
@@ -1087,6 +1252,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         return (Colors.blue, 'IN TRANSIT', Icons.local_shipping_rounded);
       case 'confirmed':
         return (Colors.orange, 'CONFIRMED', Icons.check_circle_outline);
+      case 'rejected':
+        return (Colors.red, 'REJECTED', Icons.cancel);
       case 'cancelled':
         return (Colors.red, 'CANCELLED', Icons.cancel);
       default:
@@ -1119,7 +1286,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     if (confirm == true) _logout();
   }
 
-  void _showInfo(String title, String content) {
+  void _showInfoDialog(String title, String content) {
     showDialog(
         context: context,
         builder: (_) => AlertDialog(
@@ -1133,5 +1300,52 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                       style: ElevatedButton.styleFrom(backgroundColor: kGreen),
                       child: const Text('Close'))
                 ]));
+  }
+
+  void _showEditProfileDialog() {
+    final l10n = AppLocalizations.of(context);
+    final nameCtrl = TextEditingController(text: _userName);
+    final locCtrl = TextEditingController(text: _userLocation);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n?.translate('edit_profile') ?? 'Edit Profile',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                  labelText: l10n?.translate('your_name') ?? 'Name',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)))),
+          const SizedBox(height: 12),
+          TextField(
+              controller: locCtrl,
+              decoration: InputDecoration(
+                  labelText: l10n?.translate('location') ?? 'Location',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)))),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n?.translate('cancel') ?? 'Cancel')),
+          ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('userName', nameCtrl.text);
+                await prefs.setString('userLocation', locCtrl.text);
+                setState(() {
+                  _userName = nameCtrl.text;
+                  _userLocation = locCtrl.text;
+                });
+                if (mounted) Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: kGreen),
+              child: Text(l10n?.translate('save') ?? 'Save')),
+        ],
+      ),
+    );
   }
 }

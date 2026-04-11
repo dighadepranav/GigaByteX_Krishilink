@@ -20,6 +20,25 @@ class FirestoreService {
     });
   }
 
+  Future<void> cancelOrder(String docId) async {
+    await _db.collection('orders').doc(docId).update({
+      'status': 'cancelled',
+      'trackingStatus': 'cancelled',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> deleteJob(String jobDocId) async {
+    final apps = await _db
+        .collection('jobApplications')
+        .where('jobDocId', isEqualTo: jobDocId)
+        .get();
+    for (final app in apps.docs) {
+      await app.reference.delete();
+    }
+    await _db.collection('jobs').doc(jobDocId).delete();
+  }
+
   Stream<List<ProductModel>> streamFarmerProducts(String farmerUid) {
     return _db
         .collection('products')
@@ -43,7 +62,10 @@ class FirestoreService {
   }
 
   Future<void> updateProduct(ProductModel product) async {
-    await _db.collection('products').doc(product.docId).update(product.toFirestore());
+    await _db
+        .collection('products')
+        .doc(product.docId)
+        .update(product.toFirestore());
   }
 
   Future<void> deleteProduct(String docId) async {
@@ -83,8 +105,7 @@ class FirestoreService {
     });
   }
 
-  Future<String> placeOrder(
-      OrderModel order, String buyerUid, String farmerUid,
+  Future<String> placeOrder(OrderModel order, String buyerUid, String farmerUid,
       {String? paymentMethod, String? upiId}) async {
     final ref = _db.collection('orders').doc();
     await ref.set({
@@ -99,7 +120,8 @@ class FirestoreService {
     return ref.id;
   }
 
-  Future<void> updateOrderStatus(String docId, String status, String trackingStatus) async {
+  Future<void> updateOrderStatus(
+      String docId, String status, String trackingStatus) async {
     final Map<String, dynamic> update = {
       'status': status,
       'trackingStatus': trackingStatus,
@@ -176,19 +198,22 @@ class FirestoreService {
         .where('jobDocId', isEqualTo: jobDocId)
         .snapshots()
         .map((s) => s.docs.map((d) {
-      final data = d.data();
-      return {
-        'docId': d.id,
-        'workerName': data['workerName'] ?? 'Worker',
-        'workerPhone': data['workerPhone'] ?? '',
-        'status': data['status'] ?? 'pending',
-        'appliedAt': data['appliedAt'],
-      };
-    }).toList());
+              final data = d.data();
+              return {
+                'docId': d.id,
+                'workerName': data['workerName'] ?? 'Worker',
+                'workerPhone': data['workerPhone'] ?? '',
+                'status': data['status'] ?? 'pending',
+                'appliedAt': data['appliedAt'],
+              };
+            }).toList());
   }
 
   Future<void> updateApplicationStatus(String appDocId, String status) async {
-    await _db.collection('jobApplications').doc(appDocId).update({'status': status});
+    await _db
+        .collection('jobApplications')
+        .doc(appDocId)
+        .update({'status': status});
   }
 
   Stream<Set<String>> streamUserApplications(String workerUid) {
@@ -196,7 +221,8 @@ class FirestoreService {
         .collection('jobApplications')
         .where('workerUid', isEqualTo: workerUid)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc['jobDocId'] as String).toSet());
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => doc['jobDocId'] as String).toSet());
   }
 
   // ==================== USERS ====================
@@ -213,7 +239,9 @@ class FirestoreService {
   Future<List<UserModel>> getAllUsers() async {
     try {
       final snapshot = await _db.collection('users').get();
-      return snapshot.docs.map((doc) => UserModel.fromJson(doc.data())).toList();
+      return snapshot.docs
+          .map((doc) => UserModel.fromJson(doc.data()))
+          .toList();
     } catch (e) {
       return [];
     }
@@ -234,7 +262,8 @@ class FirestoreService {
       final ordersSnap = await _db.collection('orders').get();
       int totalOrders = ordersSnap.docs.length;
 
-      final openJobsSnap = await _db.collection('jobs').where('status', isEqualTo: 'open').get();
+      final openJobsSnap =
+          await _db.collection('jobs').where('status', isEqualTo: 'open').get();
       int openJobs = openJobsSnap.docs.length;
 
       double revenue = 0;
@@ -253,7 +282,14 @@ class FirestoreService {
         'total_value': revenue,
       };
     } catch (e) {
-      return {'farmers': 0, 'buyers': 0, 'workers': 0, 'orders': 0, 'open_jobs': 0, 'total_value': 0.0};
+      return {
+        'farmers': 0,
+        'buyers': 0,
+        'workers': 0,
+        'orders': 0,
+        'open_jobs': 0,
+        'total_value': 0.0
+      };
     }
   }
 }

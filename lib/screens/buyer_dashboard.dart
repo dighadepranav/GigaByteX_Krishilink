@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../services/firestore_service.dart';
 import '../models/order_model.dart';
 import '../utils/app_localizations.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/loading_indicator.dart';
+import '../utils/theme_provider.dart';
+import '../utils/locale_provider.dart';
 import 'marketplace_screen.dart';
 import 'tracking_screen.dart';
 import 'landing_screen.dart';
@@ -24,13 +25,11 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
   String _userLocation = 'Mumbai, Maharashtra';
   String _userUid = '';
   List<OrderModel> _orders = [];
-  bool _isLoading = true;
 
   static const kBlue = Color(0xFF1565C0);
   static const kBlueDark = Color(0xFF0D47A1);
   static const kBlueLight = Color(0xFF1976D2);
 
-  final FirestoreService _firestoreService = FirestoreService();
   StreamSubscription? _ordersSub;
 
   @override
@@ -53,13 +52,9 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
   void _listenToOrders() {
     if (_userUid.isEmpty) return;
     _ordersSub?.cancel();
-    _ordersSub = _firestoreService.streamBuyerOrders(_userUid).listen((orders) {
-      if (mounted) {
-        setState(() {
-          _orders = orders;
-          _isLoading = false;
-        });
-      }
+    _ordersSub =
+        FirestoreService().streamBuyerOrders(_userUid).listen((orders) {
+      if (mounted) setState(() => _orders = orders);
     });
   }
 
@@ -77,6 +72,46 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
         MaterialPageRoute(builder: (_) => const LandingScreen()), (_) => false);
   }
 
+  Future<void> _cancelOrder(OrderModel order) async {
+    final l10n = AppLocalizations.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n?.translate('cancel_order') ?? 'Cancel Order'),
+        content: Text(l10n?.translate('cancel_order_confirm') ??
+            'Are you sure you want to cancel this order?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n?.translate('cancel') ?? 'No')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text(l10n?.translate('confirm') ?? 'Yes, Cancel')),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      try {
+        await FirestoreService().cancelOrder(order.docId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text(l10n?.translate('order_cancelled') ?? 'Order cancelled'),
+              backgroundColor: Colors.orange),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('${l10n?.translate('error_prefix') ?? 'Error'}: $e'),
+              backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Color _statusColor(String status) {
     switch (status) {
       case 'delivered':
@@ -88,6 +123,8 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
       case 'pending':
         return Colors.grey;
       case 'cancelled':
+        return Colors.red;
+      case 'rejected':
         return Colors.red;
       default:
         return Colors.grey;
@@ -107,6 +144,8 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
         return l10n?.translate('pending') ?? 'Pending';
       case 'cancelled':
         return l10n?.translate('cancelled') ?? 'Cancelled';
+      case 'rejected':
+        return l10n?.translate('rejected') ?? 'Rejected';
       default:
         return status;
     }
@@ -116,10 +155,8 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
+    return WillPopScope(
+      onWillPop: () async {
         final confirm = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
@@ -139,9 +176,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             ],
           ),
         );
-        if (confirm == true && context.mounted) {
-          Navigator.pop(context);
-        }
+        return confirm == true;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -158,16 +193,14 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
           automaticallyImplyLeading: false,
           elevation: 0,
         ),
-        body: _isLoading
-            ? const LoadingIndicator(message: 'Loading your dashboard...')
-            : IndexedStack(
-                index: _selectedIndex,
-                children: [
-                  _buildHomeTab(),
-                  _buildOrdersTab(),
-                  _buildProfileTab(),
-                ],
-              ),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            _buildHomeTab(),
+            _buildOrdersTab(),
+            _buildProfileTab(),
+          ],
+        ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: (i) => setState(() => _selectedIndex = i),
@@ -211,7 +244,10 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
         .where((o) => o.status == 'delivered')
         .fold(0.0, (sum, o) => sum + o.totalAmount);
     final activeOrders = _orders
-        .where((o) => o.status != 'delivered' && o.status != 'cancelled')
+        .where((o) =>
+            o.status != 'delivered' &&
+            o.status != 'cancelled' &&
+            o.status != 'rejected')
         .length;
 
     return SingleChildScrollView(
@@ -338,7 +374,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-          color: isDark ? color.withValues(alpha: 0.2) : color.withValues(alpha: 0.1),
+          color: isDark ? color.withOpacity(0.2) : color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         Icon(icon, color: color, size: 24),
@@ -357,14 +393,9 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
     final l10n = AppLocalizations.of(context);
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
     if (_orders.isEmpty) {
-      return EmptyState(
-        title: 'No Orders Yet',
-        message: 'Start shopping to see your orders here',
-        icon: Icons.shopping_bag_outlined,
-        onAction: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const MarketplaceScreen())),
-        actionLabel: l10n?.translate('browse_market') ?? 'Browse Market',
-      );
+      return Center(
+          child: Text(l10n?.translate('no_orders') ??
+              'No orders yet. Start shopping!'));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -377,6 +408,11 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
   Widget _buildOrderCard(OrderModel order, Color cardColor) {
     final statusColor = _statusColor(order.status);
     final l10n = AppLocalizations.of(context);
+    final isDelivered = order.status == 'delivered';
+    final isCancelledOrRejected =
+        order.status == 'cancelled' || order.status == 'rejected';
+    final canCancel = !isDelivered && !isCancelledOrRejected;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: cardColor,
@@ -392,7 +428,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
+                    color: statusColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20)),
                 child: Text(_statusLabel(order.status, context),
                     style: TextStyle(
@@ -422,22 +458,46 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                     fontWeight: FontWeight.bold,
                     color: Colors.green))
           ]),
-          if (order.status != 'delivered' && order.status != 'cancelled')
-            Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                        onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => TrackingScreen(order: order))),
-                        icon: const Icon(Icons.location_on, size: 16),
-                        label: Text(
-                            l10n?.translate('track_order') ?? 'Track Order'),
-                        style: OutlinedButton.styleFrom(
-                            foregroundColor: kBlue,
-                            side: const BorderSide(color: kBlue))))),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (isCancelledOrRejected)
+                TextButton.icon(
+                  onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => TrackingScreen(order: order))),
+                  icon: const Icon(Icons.location_on, size: 16),
+                  label: Text(l10n?.translate('track_order') ?? 'Track'),
+                )
+              else
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => TrackingScreen(order: order))),
+                    icon: const Icon(Icons.location_on, size: 16),
+                    label:
+                        Text(l10n?.translate('track_order') ?? 'Track Order'),
+                    style: OutlinedButton.styleFrom(
+                        foregroundColor: kBlue,
+                        side: const BorderSide(color: kBlue)),
+                  ),
+                ),
+              if (canCancel) const SizedBox(width: 8),
+              if (canCancel)
+                OutlinedButton.icon(
+                  onPressed: () => _cancelOrder(order),
+                  icon: const Icon(Icons.cancel, size: 16, color: Colors.red),
+                  label: Text(l10n?.translate('cancel') ?? 'Cancel',
+                      style: const TextStyle(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red)),
+                ),
+            ],
+          ),
         ]),
       ),
     );
@@ -447,6 +507,8 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final totalSpent = _orders
         .where((o) => o.status == 'delivered')
         .fold(0.0, (s, o) => s + o.totalAmount);
@@ -464,7 +526,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: Colors.white.withOpacity(0.3),
                     shape: BoxShape.circle),
                 child: const CircleAvatar(
                     radius: 40,
@@ -492,7 +554,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                 decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20)),
                 child: Text('🛒  ${l10n?.translate('buyer') ?? 'Buyer'}',
                     style: const TextStyle(
@@ -542,6 +604,26 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const MarketplaceScreen()))),
         _profileTile(
+            Icons.brightness_6_rounded,
+            l10n?.translate('dark_mode') ?? 'Dark Mode',
+            themeProvider.isDarkMode
+                ? (l10n?.translate('enabled') ?? 'Enabled')
+                : (l10n?.translate('disabled') ?? 'Disabled'),
+            Colors.purple,
+            cardColor,
+            () => themeProvider.toggleTheme()),
+        _profileTile(
+            Icons.language_rounded,
+            l10n?.translate('language') ?? 'Language',
+            localeProvider.locale.languageCode == 'en'
+                ? 'English'
+                : (localeProvider.locale.languageCode == 'hi'
+                    ? 'हिंदी'
+                    : 'मराठी'),
+            Colors.teal,
+            cardColor,
+            () => _showLanguageDialog()),
+        _profileTile(
             Icons.help_outline_rounded,
             l10n?.translate('help_support') ?? 'Help & Support',
             'support@krishilink.com',
@@ -577,6 +659,46 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
     );
   }
 
+  void _showLanguageDialog() {
+    final l10n = AppLocalizations.of(context);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n?.translate('language') ?? 'Select Language'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text(l10n?.translate('english') ?? 'English'),
+              onTap: () async {
+                await localeProvider.setLocale('en');
+                if (mounted) Navigator.pop(context);
+              }),
+          ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text(l10n?.translate('hindi') ?? 'Hindi'),
+              onTap: () async {
+                await localeProvider.setLocale('hi');
+                if (mounted) Navigator.pop(context);
+              }),
+          ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text(l10n?.translate('marathi') ?? 'Marathi'),
+              onTap: () async {
+                await localeProvider.setLocale('mr');
+                if (mounted) Navigator.pop(context);
+              }),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n?.translate('close') ?? 'Close'))
+        ],
+      ),
+    );
+  }
+
   Widget _miniStat(
       String val, String label, IconData icon, Color color, Color cardColor) {
     return Container(
@@ -605,7 +727,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
+                    color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10)),
                 child: Icon(icon, color: color, size: 22)),
             title: Text(title,
