@@ -29,12 +29,14 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
+          // ✅ FIX: Explicit backgroundColor + foregroundColor
+          // Without foregroundColor, Material 3 may render text as transparent/invisible
           backgroundColor: bgColor,
           foregroundColor: fgColor,
-          disabledBackgroundColor: bgColor.withValues(alpha: 0.5),
-          disabledForegroundColor: fgColor.withValues(alpha: 0.7),
+          disabledBackgroundColor: bgColor.withOpacity(0.5),
+          disabledForegroundColor: fgColor.withOpacity(0.7),
           elevation: 2,
-          shadowColor: bgColor.withValues(alpha: 0.4),
+          shadowColor: bgColor.withOpacity(0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -61,7 +63,7 @@ class CustomButton extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: fgColor,
+                      color: fgColor, // ✅ Explicit color — always visible
                       letterSpacing: 0.5,
                     ),
                   ),

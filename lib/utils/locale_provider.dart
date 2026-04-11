@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Manages the current locale for the whole app.
+/// Wrap MaterialApp with Consumer<LocaleProvider> and pass [locale].
 class LocaleProvider extends ChangeNotifier {
   Locale _locale;
 
@@ -14,6 +16,6 @@ class LocaleProvider extends ChangeNotifier {
     _locale = newLocale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', languageCode);
-    notifyListeners();
+    notifyListeners(); // Rebuilds MaterialApp → instant language change
   }
 }

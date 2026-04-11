@@ -28,17 +28,16 @@ class _FarmerJobApplicationsScreenState
     final l10n = AppLocalizations.of(context);
     try {
       await FirestoreService().updateApplicationStatus(appDocId, status);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('${l10n?.translate('status')}: $status'),
-            backgroundColor: Colors.green),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${l10n?.translate('status')}: $status'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('${l10n?.translate('error_prefix') ?? 'Error'}: $e'),
-            backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${l10n?.translate('error_prefix') ?? 'Error'}: $e'),
+        backgroundColor: Colors.red,
+      ));
     }
   }
 
@@ -78,23 +77,23 @@ class _FarmerJobApplicationsScreenState
                       decoration: BoxDecoration(
                         color: status == 'accepted'
                             ? Colors.green.shade100
-                            : (status == 'rejected'
+                            : status == 'rejected'
                                 ? Colors.red.shade100
-                                : Colors.orange.shade100),
+                                : Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        (l10n?.translate(status) ?? status).toUpperCase(),
-                        style: TextStyle(
-                          color: status == 'accepted'
-                              ? Colors.green.shade800
-                              : (status == 'rejected'
-                                  ? Colors.red.shade800
-                                  : Colors.orange.shade800),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
+                          l10n?.translate(status).toUpperCase() ??
+                              status.toUpperCase(),
+                          style: TextStyle(
+                            color: status == 'accepted'
+                                ? Colors.green.shade800
+                                : status == 'rejected'
+                                    ? Colors.red.shade800
+                                    : Colors.orange.shade800,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          )),
                     ),
                     onTap: () => _showAppDetails(app, status),
                   ),
@@ -109,7 +108,6 @@ class _FarmerJobApplicationsScreenState
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title:
             Text(l10n?.translate('applicant_details') ?? 'Applicant Details'),
         content: Column(
@@ -120,27 +118,29 @@ class _FarmerJobApplicationsScreenState
             Text('${l10n?.translate('phone')}: ${app['workerPhone']}'),
             const SizedBox(height: 12),
             if (status == 'pending') ...[
-              const Text('Status:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('${l10n?.translate('status')}:',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Row(children: [
                 ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _updateStatus(app['docId'], 'accepted');
-                    },
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: Text(l10n?.translate('accept') ?? 'Accept')),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _updateStatus(app['docId'], 'accepted');
+                  },
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  child: Text(l10n?.translate('accept') ?? 'Accept',
+                      style: const TextStyle(color: Colors.white)),
+                ),
                 const SizedBox(width: 8),
                 OutlinedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _updateStatus(app['docId'], 'rejected');
-                    },
-                    style:
-                        OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                    child: Text(l10n?.translate('reject') ?? 'Reject')),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _updateStatus(app['docId'], 'rejected');
+                  },
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                  child: Text(l10n?.translate('reject') ?? 'Reject'),
+                ),
               ]),
             ],
           ],
@@ -148,7 +148,7 @@ class _FarmerJobApplicationsScreenState
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(l10n?.translate('close') ?? 'Close'))
+              child: Text(l10n?.translate('close') ?? 'Close')),
         ],
       ),
     );

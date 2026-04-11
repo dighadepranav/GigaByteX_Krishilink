@@ -296,40 +296,45 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             ),
           ),
           const SizedBox(height: 20),
-          Row(children: [
-            Expanded(
-                child: _buildStatCard(
-                    l10n?.translate('total_orders') ?? 'Total Orders',
-                    '${_orders.length}',
-                    Icons.shopping_bag,
-                    kBlue,
-                    isDark)),
-            const SizedBox(width: 12),
-            Expanded(
-                child: _buildStatCard(
-                    l10n?.translate('active_orders') ?? 'Active',
-                    '$activeOrders',
-                    Icons.local_shipping,
-                    Colors.orange,
-                    isDark)),
-            const SizedBox(width: 12),
-            Expanded(
-                child: _buildStatCard(
-                    l10n?.translate('total_spent') ?? 'Spent',
-                    '₹${totalSpent.toStringAsFixed(0)}',
-                    Icons.currency_rupee,
-                    Colors.green,
-                    isDark)),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                  child: _buildStatCard(
+                      l10n?.translate('total_orders') ?? 'Total Orders',
+                      '${_orders.length}',
+                      Icons.shopping_bag,
+                      kBlue,
+                      isDark)),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _buildStatCard(
+                      l10n?.translate('active_orders') ?? 'Active',
+                      '$activeOrders',
+                      Icons.local_shipping,
+                      Colors.orange,
+                      isDark)),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _buildStatCard(
+                      l10n?.translate('total_spent') ?? 'Spent',
+                      '₹${totalSpent.toStringAsFixed(0)}',
+                      Icons.currency_rupee,
+                      Colors.green,
+                      isDark)),
+            ],
+          ),
           const SizedBox(height: 24),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(l10n?.translate('recent_orders') ?? 'Recent Orders',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            TextButton(
-                onPressed: () => setState(() => _selectedIndex = 1),
-                child: Text(l10n?.translate('see_all') ?? 'See All')),
-          ]),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(l10n?.translate('recent_orders') ?? 'Recent Orders',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              TextButton(
+                  onPressed: () => setState(() => _selectedIndex = 1),
+                  child: Text(l10n?.translate('see_all') ?? 'See All')),
+            ],
+          ),
           const SizedBox(height: 8),
           ..._orders.take(2).map((order) => _buildOrderCard(order, cardColor)),
           const SizedBox(height: 16),
@@ -344,25 +349,28 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                       isDark ? const Color(0xFF1A2A1A) : Colors.green.shade50,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.green.shade200)),
-              child: Row(children: [
-                Icon(Icons.storefront, size: 40, color: Colors.green.shade600),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text(
-                          l10n?.translate('browse_market') ??
-                              'Browse Marketplace',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green.shade700)),
-                      Text(l10n?.translate('buy_fresh') ??
-                          'Buy fresh produce directly from farmers'),
-                    ])),
-                Icon(Icons.arrow_forward_ios, color: Colors.green.shade600),
-              ]),
+              child: Row(
+                children: [
+                  Icon(Icons.storefront,
+                      size: 40, color: Colors.green.shade600),
+                  const SizedBox(width: 16),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text(
+                            l10n?.translate('browse_market') ??
+                                'Browse Marketplace',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade700)),
+                        Text(l10n?.translate('buy_fresh') ??
+                            'Buy fresh produce directly from farmers'),
+                      ])),
+                  Icon(Icons.arrow_forward_ios, color: Colors.green.shade600),
+                ],
+              ),
             ),
           ),
         ],
@@ -377,15 +385,17 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
       decoration: BoxDecoration(
           color: isDark ? color.withOpacity(0.2) : color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12)),
-      child: Column(children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(height: 6),
-        Text(value,
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-        Text(label,
-            style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-      ]),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 6),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+          Text(label,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+        ],
+      ),
     );
   }
 
@@ -444,7 +454,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             Expanded(
                 child: Text(
                     '${order.productName} — ${order.quantity} ${order.unit}',
-                    style: const TextStyle(fontSize: 14)))
+                    style: const TextStyle(fontSize: 14))),
           ]),
           const SizedBox(height: 4),
           Row(children: [
@@ -457,37 +467,40 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green))
+                    color: Colors.green)),
           ]),
           const SizedBox(height: 4),
           Row(children: [
             Icon(Icons.phone, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 4),
             Expanded(
-                child: Text(
-                    '${l10n?.translate('farmer') ?? 'Farmer'}: ${order.farmerPhone.isNotEmpty ? order.farmerPhone : (l10n?.translate('not_provided') ?? 'Not provided')}',
-                    style:
-                        TextStyle(color: Colors.grey.shade600, fontSize: 12))),
+              child: Text(
+                '${l10n?.translate('farmer') ?? 'Farmer'}: ${order.farmerPhone.isNotEmpty ? order.farmerPhone : (l10n?.translate('not_provided') ?? 'Not provided')}',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+            ),
           ]),
           const SizedBox(height: 2),
           Row(children: [
             Icon(Icons.location_on, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 4),
             Expanded(
-                child: Text(
-                    '${l10n?.translate('delivery') ?? 'Delivery'}: ${order.deliveryAddress ?? (l10n?.translate('not_specified') ?? 'Not specified')}',
-                    style:
-                        TextStyle(color: Colors.grey.shade600, fontSize: 12))),
+              child: Text(
+                '${l10n?.translate('delivery') ?? 'Delivery'}: ${order.deliveryAddress ?? (l10n?.translate('not_specified') ?? 'Not specified')}',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+            ),
           ]),
           const SizedBox(height: 2),
           Row(children: [
             Icon(Icons.payment, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 4),
             Expanded(
-                child: Text(
-                    '${l10n?.translate('payment') ?? 'Payment'}: ${order.paymentMethodLabel}',
-                    style:
-                        TextStyle(color: Colors.grey.shade600, fontSize: 12))),
+              child: Text(
+                '${l10n?.translate('payment') ?? 'Payment'}: ${order.paymentMethodLabel}',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+            ),
           ]),
           const SizedBox(height: 10),
           Row(
@@ -501,6 +514,10 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                           builder: (_) => TrackingScreen(order: order))),
                   icon: const Icon(Icons.location_on, size: 16),
                   label: Text(l10n?.translate('track_order') ?? 'Track'),
+                  style: TextButton.styleFrom(
+                      foregroundColor: kBlue,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6)),
                 )
               else
                 Expanded(
@@ -546,154 +563,184 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [kBlueDark, kBlueLight]),
-              borderRadius: BorderRadius.circular(20)),
-          child: Column(children: [
-            Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    shape: BoxShape.circle),
-                child: const CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.white,
-                    child: Text('🛒', style: TextStyle(fontSize: 38)))),
-            const SizedBox(height: 12),
-            Text(_userName,
-                style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
-            const SizedBox(height: 4),
-            if (_userPhone.isNotEmpty)
-              Text(_userPhone,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13)),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.location_on_rounded,
-                  color: Colors.white70, size: 14),
-              const SizedBox(width: 4),
-              Text(_userLocation,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12))
-            ]),
-            const SizedBox(height: 12),
-            Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20)),
-                child: Text('🛒  ${l10n?.translate('buyer') ?? 'Buyer'}',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold))),
-          ]),
-        ),
-        const SizedBox(height: 20),
-        Row(children: [
-          Expanded(
-              child: _miniStat(
-                  '${_orders.length}',
-                  l10n?.translate('orders') ?? 'Orders',
-                  Icons.shopping_bag_rounded,
-                  kBlue,
-                  cardColor)),
-          const SizedBox(width: 10),
-          Expanded(
-              child: _miniStat(
-                  '${_orders.where((o) => o.status != 'delivered').length}',
-                  l10n?.translate('active') ?? 'Active',
-                  Icons.local_shipping_rounded,
-                  Colors.orange,
-                  cardColor)),
-          const SizedBox(width: 10),
-          Expanded(
-              child: _miniStat(
-                  '₹${totalSpent.toStringAsFixed(0)}',
-                  l10n?.translate('spent') ?? 'Spent',
-                  Icons.currency_rupee_rounded,
-                  Colors.green,
-                  cardColor)),
-        ]),
-        const SizedBox(height: 20),
-        _profileTile(
-            Icons.shopping_bag_rounded,
-            l10n?.translate('my_orders') ?? 'My Orders',
-            '${_orders.length} orders',
-            kBlue,
-            cardColor,
-            () => setState(() => _selectedIndex = 1)),
-        _profileTile(
-            Icons.storefront_rounded,
-            l10n?.translate('marketplace') ?? 'Marketplace',
-            'Browse fresh produce',
-            Colors.green,
-            cardColor,
-            () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const MarketplaceScreen()))),
-        _profileTile(
-            Icons.brightness_6_rounded,
-            l10n?.translate('dark_mode') ?? 'Dark Mode',
-            themeProvider.isDarkMode
-                ? (l10n?.translate('enabled') ?? 'Enabled')
-                : (l10n?.translate('disabled') ?? 'Disabled'),
-            Colors.purple,
-            cardColor,
-            () => themeProvider.toggleTheme()),
-        _profileTile(
-            Icons.language_rounded,
-            l10n?.translate('language') ?? 'Language',
-            localeProvider.locale.languageCode == 'en'
-                ? 'English'
-                : (localeProvider.locale.languageCode == 'hi'
-                    ? 'हिंदी'
-                    : 'मराठी'),
-            Colors.teal,
-            cardColor,
-            () => _showLanguageDialog()),
-        _profileTile(
-            Icons.edit_note_rounded,
-            l10n?.translate('edit_profile') ?? 'Edit Profile',
-            'Update your name & details',
-            Colors.purple.shade400,
-            cardColor,
-            _showEditProfile),
-        _profileTile(
-            Icons.help_outline_rounded,
-            l10n?.translate('help_support') ?? 'Help & Support',
-            'support@krishilink.com',
-            Colors.teal,
-            cardColor,
-            () => _showInfo('Help & Support',
-                '📞 Helpline: 1800-123-4567\n📧 Email: support@krishilink.com')),
-        _profileTile(
-            Icons.info_outline_rounded,
-            l10n?.translate('about_app') ?? 'About KrishiLink',
-            'Version 1.0.0',
-            Colors.grey.shade600,
-            cardColor,
-            () => _showInfo('About KrishiLink',
-                '🌾 KrishiLink connects farmers directly to buyers.\n\nVersion 1.0.0\n© 2024 KrishiLink')),
-        const SizedBox(height: 20),
-        SizedBox(
+      child: Column(
+        children: [
+          Container(
             width: double.infinity,
-            height: 52,
-            child: OutlinedButton.icon(
-                onPressed: _confirmLogout,
-                icon: const Icon(Icons.logout_rounded, color: Colors.red),
-                label: Text(l10n?.translate('logout') ?? 'Logout',
-                    style: const TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16)),
-                style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14))))),
-      ]),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  colors: [kBlueDark, kBlueLight],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                    color: kBlue.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4))
+              ],
+            ),
+            child: Column(children: [
+              Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      shape: BoxShape.circle),
+                  child: const CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.white,
+                      child: Text('🛒', style: TextStyle(fontSize: 38)))),
+              const SizedBox(height: 12),
+              Text(_userName,
+                  style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white)),
+              const SizedBox(height: 4),
+              if (_userPhone.isNotEmpty)
+                Text(_userPhone,
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 4),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.location_on_rounded,
+                    color: Colors.white70, size: 14),
+                const SizedBox(width: 4),
+                Text(_userLocation,
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 12)),
+              ]),
+              const SizedBox(height: 12),
+              Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.4))),
+                  child: Text('🛒  ${l10n?.translate('buyer') ?? 'Buyer'}',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold))),
+            ]),
+          ),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(
+                child: _miniStat(
+                    '${_orders.length}',
+                    l10n?.translate('orders') ?? 'Orders',
+                    Icons.shopping_bag_rounded,
+                    kBlue,
+                    cardColor)),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _miniStat(
+                    '${_orders.where((o) => o.status != 'delivered').length}',
+                    l10n?.translate('active') ?? 'Active',
+                    Icons.local_shipping_rounded,
+                    Colors.orange,
+                    cardColor)),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _miniStat(
+                    '₹${totalSpent.toStringAsFixed(0)}',
+                    l10n?.translate('spent') ?? 'Spent',
+                    Icons.currency_rupee_rounded,
+                    Colors.green,
+                    cardColor)),
+          ]),
+          const SizedBox(height: 20),
+          _profileTile(
+              Icons.shopping_bag_rounded,
+              l10n?.translate('my_orders') ?? 'My Orders',
+              '${_orders.length} orders',
+              kBlue,
+              cardColor,
+              () => setState(() => _selectedIndex = 1)),
+          _profileTile(
+              Icons.storefront_rounded,
+              l10n?.translate('marketplace') ?? 'Marketplace',
+              l10n?.translate('buy_fresh') ??
+                  'Browse fresh produce from farmers',
+              Colors.green,
+              cardColor,
+              () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const MarketplaceScreen()))),
+          _profileTile(
+              Icons.local_shipping_rounded,
+              l10n?.translate('track_order') ?? 'Track Orders',
+              'View live order tracking',
+              Colors.orange,
+              cardColor,
+              () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const TrackingScreen()))),
+          _profileTile(
+              Icons.brightness_6_rounded,
+              l10n?.translate('dark_mode') ?? 'Dark Mode',
+              themeProvider.isDarkMode
+                  ? (l10n?.translate('enabled') ?? 'Enabled')
+                  : (l10n?.translate('disabled') ?? 'Disabled'),
+              Colors.purple,
+              cardColor,
+              () => themeProvider.toggleTheme()),
+          _profileTile(
+              Icons.language_rounded,
+              l10n?.translate('language') ?? 'Language',
+              localeProvider.locale.languageCode == 'en'
+                  ? 'English'
+                  : (localeProvider.locale.languageCode == 'hi'
+                      ? 'हिंदी'
+                      : 'मराठी'),
+              Colors.teal,
+              cardColor,
+              () => _showLanguageDialog()),
+          _profileTile(
+              Icons.edit_note_rounded,
+              l10n?.translate('edit_profile') ?? 'Edit Profile',
+              'Update your name & details',
+              Colors.purple.shade400,
+              cardColor,
+              _showEditProfile),
+          _profileTile(
+              Icons.help_outline_rounded,
+              l10n?.translate('help_support') ?? 'Help & Support',
+              'support@krishilink.com',
+              Colors.teal,
+              cardColor,
+              () => _showInfo(
+                  l10n?.translate('help_support') ?? 'Help & Support',
+                  '📞 ${l10n?.translate('helpline') ?? 'Helpline'}: 1800-123-4567\n📧 ${l10n?.translate('email') ?? 'Email'}: support@krishilink.com\n\nAvailable Mon–Sat, 8 AM – 8 PM')),
+          _profileTile(
+              Icons.info_outline_rounded,
+              l10n?.translate('about_app') ?? 'About KrishiLink',
+              '${l10n?.translate('version') ?? 'Version'} 1.0.0',
+              Colors.grey.shade600,
+              cardColor,
+              () => _showInfo(
+                  l10n?.translate('about_app') ?? 'About KrishiLink',
+                  '🌾 KrishiLink connects farmers directly to buyers, eliminating middlemen and ensuring fair prices.\n\nVersion 1.0.0\n© 2024 KrishiLink')),
+          const SizedBox(height: 20),
+          SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton.icon(
+                  onPressed: _confirmLogout,
+                  icon: const Icon(Icons.logout_rounded, color: Colors.red),
+                  label: Text(l10n?.translate('logout') ?? 'Logout',
+                      style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
+                  style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14))))),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
@@ -707,31 +754,34 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
         title: Text(l10n?.translate('language') ?? 'Select Language'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
-              leading: const Icon(Icons.check_circle, color: Colors.green),
-              title: Text(l10n?.translate('english') ?? 'English'),
-              onTap: () async {
-                await localeProvider.setLocale('en');
-                if (mounted) Navigator.pop(context);
-              }),
+            leading: const Icon(Icons.check_circle, color: Colors.green),
+            title: Text(l10n?.translate('english') ?? 'English'),
+            onTap: () async {
+              await localeProvider.setLocale('en');
+              if (mounted) Navigator.pop(context);
+            },
+          ),
           ListTile(
-              leading: const Icon(Icons.check_circle, color: Colors.green),
-              title: Text(l10n?.translate('hindi') ?? 'Hindi'),
-              onTap: () async {
-                await localeProvider.setLocale('hi');
-                if (mounted) Navigator.pop(context);
-              }),
+            leading: const Icon(Icons.check_circle, color: Colors.green),
+            title: Text(l10n?.translate('hindi') ?? 'Hindi'),
+            onTap: () async {
+              await localeProvider.setLocale('hi');
+              if (mounted) Navigator.pop(context);
+            },
+          ),
           ListTile(
-              leading: const Icon(Icons.check_circle, color: Colors.green),
-              title: Text(l10n?.translate('marathi') ?? 'Marathi'),
-              onTap: () async {
-                await localeProvider.setLocale('mr');
-                if (mounted) Navigator.pop(context);
-              }),
+            leading: const Icon(Icons.check_circle, color: Colors.green),
+            title: Text(l10n?.translate('marathi') ?? 'Marathi'),
+            onTap: () async {
+              await localeProvider.setLocale('mr');
+              if (mounted) Navigator.pop(context);
+            },
+          ),
         ]),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(l10n?.translate('close') ?? 'Close'))
+              child: Text(l10n?.translate('close') ?? 'Close')),
         ],
       ),
     );
@@ -740,85 +790,99 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
   Widget _miniStat(
       String val, String label, IconData icon, Color color, Color cardColor) {
     return Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-            color: cardColor, borderRadius: BorderRadius.circular(14)),
-        child: Column(children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 6),
-          Text(val,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: color, fontSize: 15)),
-          Text(label,
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600))
-        ]));
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
+          ]),
+      child: Column(children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(height: 6),
+        Text(val,
+            style: TextStyle(
+                fontWeight: FontWeight.bold, color: color, fontSize: 15)),
+        Text(label,
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+      ]),
+    );
   }
 
   Widget _profileTile(IconData icon, String title, String sub, Color color,
       Color cardColor, VoidCallback onTap) {
     return Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-            color: cardColor, borderRadius: BorderRadius.circular(14)),
-        child: ListTile(
-            onTap: onTap,
-            leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, color: color, size: 22)),
-            title: Text(title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-            subtitle: Text(sub,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            trailing: Icon(Icons.chevron_right_rounded,
-                color: Colors.grey.shade400)));
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 5)
+          ]),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: color, size: 22)),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        subtitle: Text(sub,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        trailing:
+            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
   }
 
   void _confirmLogout() async {
     final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-                title: Row(children: [
-                  const Icon(Icons.logout_rounded, color: Colors.red),
-                  const SizedBox(width: 8),
-                  Text(l10n?.translate('logout') ?? 'Logout')
-                ]),
-                content:
-                    Text(l10n?.translate('logout_confirm') ?? 'Are you sure?'),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(l10n?.translate('cancel') ?? 'Cancel')),
-                  ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style:
-                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: Text(l10n?.translate('logout') ?? 'Logout'))
-                ]));
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(children: [
+          const Icon(Icons.logout_rounded, color: Colors.red),
+          const SizedBox(width: 8),
+          Text(l10n?.translate('logout') ?? 'Logout')
+        ]),
+        content: Text(l10n?.translate('logout_confirm') ??
+            'Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n?.translate('cancel') ?? 'Cancel')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red, foregroundColor: Colors.white),
+              child: Text(l10n?.translate('logout') ?? 'Logout')),
+        ],
+      ),
+    );
     if (confirm == true) _logout();
   }
 
   void _showInfo(String title, String content) {
     final l10n = AppLocalizations.of(context);
     showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-                title: Text(title),
-                content: Text(content),
-                actions: [
-                  ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(backgroundColor: kBlue),
-                      child: Text(l10n?.translate('close') ?? 'Close'))
-                ]));
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(content),
+        actions: [
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kBlue, foregroundColor: Colors.white),
+              child: Text(l10n?.translate('close') ?? 'Close'))
+        ],
+      ),
+    );
   }
 
   void _showEditProfile() {
@@ -861,7 +925,8 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 });
                 if (mounted) Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: kBlue),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kBlue, foregroundColor: Colors.white),
               child: Text(l10n?.translate('save') ?? 'Save')),
         ],
       ),

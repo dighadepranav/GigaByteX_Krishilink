@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProductModel {
-  final String docId;
-  final int id;
-  final String farmerUid;
-  final int farmerId;
+  final String docId; // Firestore document ID
+  final int id; // legacy numeric id (kept for UI compat)
+  final String farmerUid; // Firebase Auth UID of the farmer
+  final int farmerId; // legacy numeric farmer id
   final String farmerName;
   final String name;
   final double quantity;
@@ -37,27 +37,6 @@ class ProductModel {
     this.totalSold,
   });
 
-  factory ProductModel.fromJson(Map<String, dynamic> json) {
-    return ProductModel(
-      docId: json['docId'] ?? '',
-      id: json['id'] ?? 0,
-      farmerUid: json['farmerUid'] ?? '',
-      farmerId: json['farmer_id'] ?? 0,
-      farmerName: json['farmer_name'] ?? 'Farmer',
-      name: json['name'] ?? '',
-      quantity: (json['quantity'] ?? 0).toDouble(),
-      unit: json['unit'] ?? 'kg',
-      price: (json['price'] ?? 0).toDouble(),
-      marketPrice: (json['market_price'] ?? 0).toDouble(),
-      description: json['description'],
-      images: json['images'] != null ? List<String>.from(json['images']) : null,
-      status: json['status'] ?? 'available',
-      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
-      rating: json['rating']?.toDouble(),
-      totalSold: json['total_sold'],
-    );
-  }
-
   factory ProductModel.fromFirestore(DocumentSnapshot doc) {
     final json = doc.data() as Map<String, dynamic>;
     return ProductModel(
@@ -80,22 +59,27 @@ class ProductModel {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'farmer_id': farmerId,
-      'farmer_name': farmerName,
-      'name': name,
-      'quantity': quantity,
-      'unit': unit,
-      'price': price,
-      'market_price': marketPrice,
-      'description': description,
-      'images': images,
-      'status': status,
-      'rating': rating,
-      'total_sold': totalSold,
-    };
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    return ProductModel(
+      docId: json['docId'] ?? '',
+      id: json['id'] ?? 0,
+      farmerUid: json['farmerUid'] ?? '',
+      farmerId: json['farmer_id'] ?? 0,
+      farmerName: json['farmer_name'] ?? 'Farmer',
+      name: json['name'] ?? '',
+      quantity: (json['quantity'] ?? 0).toDouble(),
+      unit: json['unit'] ?? 'kg',
+      price: (json['price'] ?? 0).toDouble(),
+      marketPrice: (json['market_price'] ?? 0).toDouble(),
+      description: json['description'],
+      images: json['images'] != null ? List<String>.from(json['images']) : null,
+      status: json['status'] ?? 'available',
+      createdAt: json['createdAt'] is Timestamp
+          ? (json['createdAt'] as Timestamp).toDate()
+          : DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      rating: json['rating']?.toDouble(),
+      totalSold: json['total_sold'],
+    );
   }
 
   Map<String, dynamic> toFirestore() {
@@ -115,6 +99,8 @@ class ProductModel {
       'total_sold': totalSold,
     };
   }
+
+  Map<String, dynamic> toJson() => toFirestore();
 
   ProductModel copyWith({
     String? docId,
@@ -160,4 +146,6 @@ class ProductModel {
       marketPrice > 0 ? ((marketPrice - price) / marketPrice * 100) : 0;
 
   bool get isAvailable => status == 'available';
+
+  bool get isBelowMarketPrice => price < marketPrice;
 }

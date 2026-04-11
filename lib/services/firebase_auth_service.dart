@@ -10,10 +10,10 @@ class FirebaseAuthService {
   ConfirmationResult? _webConfirmation;
 
   Future<void> sendOtp(
-      String phone, {
-        required void Function(String verificationId) onCodeSent,
-        required void Function(String error) onError,
-      }) async {
+    String phone, {
+    required void Function(String verificationId) onCodeSent,
+    required void Function(String error) onError,
+  }) async {
     final fullPhone = '+91$phone';
 
     if (kIsWeb) {
@@ -45,6 +45,9 @@ class FirebaseAuthService {
     }
   }
 
+  // FIX: Uses uid_role as document key so the same phone number can have
+  // separate Firestore profiles for farmer, buyer, and worker roles.
+  // Admin Users tab will now correctly show all logins for the same number.
   Future<UserModel?> verifyOtp({
     required String verificationId,
     required String otp,
@@ -70,6 +73,7 @@ class FirebaseAuthService {
     final uid = user.uid;
     final phone = user.phoneNumber ?? '+91Unknown';
 
+    // uid_role = unique doc per phone+role combination
     final docId = '${uid}_$role';
     final docSnap = await _db.collection('users').doc(docId).get();
 
@@ -95,22 +99,28 @@ class FirebaseAuthService {
 
   Future<void> signOut() => _auth.signOut();
 
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+
   String _friendlyError(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-phone-number':
-        return 'Phone number is not valid.';
+        return 'Phone number is not valid. Include country code.';
       case 'too-many-requests':
-        return 'Too many attempts. Please wait.';
+        return 'Too many attempts. Please wait a few minutes and try again.';
       case 'quota-exceeded':
-        return 'SMS quota exceeded. Try tomorrow.';
+        return 'SMS quota exceeded for today. Try again tomorrow.';
       case 'invalid-verification-code':
-        return 'Wrong OTP. Please check.';
+        return 'Wrong OTP. Please check the SMS and try again.';
       case 'session-expired':
-        return 'OTP expired. Request new one.';
+        return 'OTP expired. Please request a new one.';
       case 'network-request-failed':
-        return 'No internet connection.';
+        return 'No internet connection. Check your network.';
+      case 'app-not-authorized':
+        return 'App not authorized. Check SHA fingerprint in Firebase Console.';
+      case 'web-context-cancelled':
+        return 'reCAPTCHA was cancelled. Please try again.';
       default:
-        return e.message ?? 'Something went wrong.';
+        return e.message ?? 'Something went wrong. Please try again.';
     }
   }
 }

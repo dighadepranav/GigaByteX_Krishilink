@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
@@ -24,9 +25,11 @@ class DefaultFirebaseOptions {
     measurementId: 'G-GV3221WZXC',
   );
 
+  // IMPORTANT: Replace appId below with your Android App ID from Firebase Console
+  // → Project Settings → Your Apps → Android app → App ID
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDrIadwf9VCvfnbnZeaa75aqO8wY4oGFG4',
-    appId: '1:267634249559:android:YOUR_ANDROID_APP_ID',
+    appId: '1:267634249559:android:REPLACE_WITH_ANDROID_APP_ID',
     messagingSenderId: '267634249559',
     projectId: 'krishilink-e7c6a',
     storageBucket: 'krishilink-e7c6a.firebasestorage.app',
@@ -34,7 +37,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDrIadwf9VCvfnbnZeaa75aqO8wY4oGFG4',
-    appId: '1:267634249559:ios:YOUR_IOS_APP_ID',
+    appId: '1:267634249559:ios:REPLACE_WITH_IOS_APP_ID',
     messagingSenderId: '267634249559',
     projectId: 'krishilink-e7c6a',
     storageBucket: 'krishilink-e7c6a.firebasestorage.app',

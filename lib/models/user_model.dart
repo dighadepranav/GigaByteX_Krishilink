@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
-  final String docId;
   final int id;
   final String phone;
   final String name;
@@ -14,7 +13,6 @@ class UserModel {
   final double? totalEarned;
 
   UserModel({
-    this.docId = '',
     required this.id,
     required this.phone,
     required this.name,
@@ -28,34 +26,25 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      docId: json['docId'] ?? '',
-      id: (json['id'] ?? 0) as int,
-      phone: json['phone'] ?? '',
-      name: json['name'] ?? '',
-      role: json['role'] ?? 'farmer',
-      location: json['location'] ?? '',
-      profileImage: json['profile_image'],
-      createdAt: json['created_at'] is Timestamp
-          ? (json['created_at'] as Timestamp).toDate()
-          : DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
-      rating: (json['rating'] as num?)?.toDouble(),
-      totalOrders: json['total_orders'] as int?,
-      totalEarned: (json['total_earned'] as num?)?.toDouble(),
-    );
-  }
+    // Handle createdAt as Timestamp, ISO string, or missing
+    DateTime createdAt;
+    final raw = json['created_at'] ?? json['createdAt'];
+    if (raw is Timestamp) {
+      createdAt = raw.toDate();
+    } else if (raw is String && raw.isNotEmpty) {
+      createdAt = DateTime.tryParse(raw) ?? DateTime.now();
+    } else {
+      createdAt = DateTime.now();
+    }
 
-  factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    final json = doc.data() as Map<String, dynamic>;
     return UserModel(
-      docId: doc.id,
       id: (json['id'] ?? 0) as int,
       phone: json['phone'] ?? '',
       name: json['name'] ?? '',
       role: json['role'] ?? 'farmer',
       location: json['location'] ?? '',
       profileImage: json['profile_image'],
-      createdAt: (json['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: createdAt,
       rating: (json['rating'] as num?)?.toDouble(),
       totalOrders: json['total_orders'] as int?,
       totalEarned: (json['total_earned'] as num?)?.toDouble(),
@@ -77,23 +66,7 @@ class UserModel {
     };
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      'id': id,
-      'phone': phone,
-      'name': name,
-      'role': role,
-      'location': location,
-      'profile_image': profileImage,
-      'created_at': createdAt,
-      'rating': rating,
-      'total_orders': totalOrders,
-      'total_earned': totalEarned,
-    };
-  }
-
   UserModel copyWith({
-    String? docId,
     int? id,
     String? phone,
     String? name,
@@ -106,7 +79,6 @@ class UserModel {
     double? totalEarned,
   }) {
     return UserModel(
-      docId: docId ?? this.docId,
       id: id ?? this.id,
       phone: phone ?? this.phone,
       name: name ?? this.name,
@@ -121,7 +93,10 @@ class UserModel {
   }
 
   bool get isFarmer => role == 'farmer';
+
   bool get isBuyer => role == 'buyer';
+
   bool get isWorker => role == 'worker';
+
   bool get isAdmin => role == 'admin';
 }

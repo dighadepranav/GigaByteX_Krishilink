@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/locale_provider.dart';
+import '../utils/app_localizations.dart';
 
+/// A widget that lets users pick EN / HI / MR and rebuilds the whole app.
 class LanguageSwitcher extends StatefulWidget {
   const LanguageSwitcher({super.key});
 
@@ -23,13 +25,17 @@ class _LanguageSwitcherState extends State<LanguageSwitcher> {
   };
 
   Future<void> _changeLanguage(String langCode) async {
+    // Access the provider and update the locale
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     await localeProvider.setLocale(langCode);
 
     if (mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Language changed to ${_fullNames[langCode]}'),
+          content: Text(
+            '${l10n?.translate('language_changed_to') ?? 'Language changed to'} ${_fullNames[langCode]}',
+          ),
           duration: const Duration(seconds: 1),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
@@ -40,12 +46,14 @@ class _LanguageSwitcherState extends State<LanguageSwitcher> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch the current locale from the provider
     final localeProvider = Provider.of<LocaleProvider>(context);
     final currentLang = localeProvider.locale.languageCode;
+    final l10n = AppLocalizations.of(context);
 
     return PopupMenuButton<String>(
       initialValue: currentLang,
-      tooltip: 'Change language',
+      tooltip: l10n?.translate('change_language') ?? 'Change language',
       icon: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

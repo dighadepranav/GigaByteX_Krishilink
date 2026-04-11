@@ -7,7 +7,10 @@ import '../models/job_model.dart';
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // ==================== PRODUCTS ====================
+  // ═══════════════════════════════════════════════════════════════
+  //  PRODUCTS
+  // ═══════════════════════════════════════════════════════════════
+
   Stream<List<ProductModel>> streamProducts() {
     return _db
         .collection('products')
@@ -43,14 +46,20 @@ class FirestoreService {
   }
 
   Future<void> updateProduct(ProductModel product) async {
-    await _db.collection('products').doc(product.docId).update(product.toFirestore());
+    await _db
+        .collection('products')
+        .doc(product.docId)
+        .update(product.toFirestore());
   }
 
   Future<void> deleteProduct(String docId) async {
     await _db.collection('products').doc(docId).delete();
   }
 
-  // ==================== ORDERS ====================
+  // ═══════════════════════════════════════════════════════════════
+  //  ORDERS
+  // ═══════════════════════════════════════════════════════════════
+
   Stream<List<OrderModel>> streamBuyerOrders(String buyerUid) {
     return _db
         .collection('orders')
@@ -83,9 +92,12 @@ class FirestoreService {
     });
   }
 
-  Future<String> placeOrder(
-      OrderModel order, String buyerUid, String farmerUid,
-      {String? paymentMethod, String? upiId, String? farmerLocation, String? buyerPhone, String? farmerPhone}) async {
+  Future<String> placeOrder(OrderModel order, String buyerUid, String farmerUid,
+      {String? paymentMethod,
+      String? upiId,
+      String? farmerLocation,
+      String? buyerPhone,
+      String? farmerPhone}) async {
     final ref = _db.collection('orders').doc();
     await ref.set({
       ...order.toFirestore(),
@@ -102,7 +114,8 @@ class FirestoreService {
     return ref.id;
   }
 
-  Future<void> updateOrderStatus(String docId, String status, String trackingStatus) async {
+  Future<void> updateOrderStatus(
+      String docId, String status, String trackingStatus) async {
     final Map<String, dynamic> update = {
       'status': status,
       'trackingStatus': trackingStatus,
@@ -122,19 +135,21 @@ class FirestoreService {
     });
   }
 
-  // Auto‑deliver orders after 3 days (called from dashboard initState)
   Future<void> checkAndAutoDeliverOrders(String uid, String role) async {
     final now = DateTime.now();
     final ordersQuery = _db.collection('orders').where(
-      role == 'buyer' ? 'buyerUid' : 'farmerUid',
-      isEqualTo: uid,
-    );
+          role == 'buyer' ? 'buyerUid' : 'farmerUid',
+          isEqualTo: uid,
+        );
     final snapshot = await ordersQuery.get();
     for (final doc in snapshot.docs) {
       final order = OrderModel.fromFirestore(doc);
-      if (order.status != 'delivered' && order.status != 'cancelled' && order.status != 'rejected') {
+      if (order.status != 'delivered' &&
+          order.status != 'cancelled' &&
+          order.status != 'rejected') {
         final estimatedDate = order.orderDate.add(const Duration(days: 3));
-        if (estimatedDate.isBefore(now) || estimatedDate.isAtSameMomentAs(now)) {
+        if (estimatedDate.isBefore(now) ||
+            estimatedDate.isAtSameMomentAs(now)) {
           await doc.reference.update({
             'status': 'delivered',
             'trackingStatus': 'delivered',
@@ -145,7 +160,10 @@ class FirestoreService {
     }
   }
 
-  // ==================== JOBS ====================
+  // ═══════════════════════════════════════════════════════════════
+  //  JOBS
+  // ═══════════════════════════════════════════════════════════════
+
   Stream<List<JobModel>> streamOpenJobs() {
     return _db
         .collection('jobs')
@@ -181,7 +199,10 @@ class FirestoreService {
   }
 
   Future<void> deleteJob(String jobDocId) async {
-    final apps = await _db.collection('jobApplications').where('jobDocId', isEqualTo: jobDocId).get();
+    final apps = await _db
+        .collection('jobApplications')
+        .where('jobDocId', isEqualTo: jobDocId)
+        .get();
     for (final app in apps.docs) {
       await app.reference.delete();
     }
@@ -218,19 +239,22 @@ class FirestoreService {
         .where('jobDocId', isEqualTo: jobDocId)
         .snapshots()
         .map((s) => s.docs.map((d) {
-      final data = d.data();
-      return {
-        'docId': d.id,
-        'workerName': data['workerName'] ?? 'Worker',
-        'workerPhone': data['workerPhone'] ?? '',
-        'status': data['status'] ?? 'pending',
-        'appliedAt': data['appliedAt'],
-      };
-    }).toList());
+              final data = d.data();
+              return {
+                'docId': d.id,
+                'workerName': data['workerName'] ?? 'Worker',
+                'workerPhone': data['workerPhone'] ?? '',
+                'status': data['status'] ?? 'pending',
+                'appliedAt': data['appliedAt'],
+              };
+            }).toList());
   }
 
   Future<void> updateApplicationStatus(String appDocId, String status) async {
-    await _db.collection('jobApplications').doc(appDocId).update({'status': status});
+    await _db
+        .collection('jobApplications')
+        .doc(appDocId)
+        .update({'status': status});
   }
 
   Stream<Set<String>> streamUserApplications(String workerUid) {
@@ -238,21 +262,26 @@ class FirestoreService {
         .collection('jobApplications')
         .where('workerUid', isEqualTo: workerUid)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc['jobDocId'] as String).toSet());
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => doc['jobDocId'] as String).toSet());
   }
 
-  Stream<Map<String, String>> streamUserApplicationsWithStatus(String workerUid) {
+  Stream<Map<String, String>> streamUserApplicationsWithStatus(
+      String workerUid) {
     return _db
         .collection('jobApplications')
         .where('workerUid', isEqualTo: workerUid)
         .snapshots()
         .map((snapshot) => {
-      for (var doc in snapshot.docs)
-        doc['jobDocId'] as String: doc['status'] as String? ?? 'pending'
-    });
+              for (var doc in snapshot.docs)
+                doc['jobDocId'] as String: doc['status'] as String? ?? 'pending'
+            });
   }
 
-  // ==================== USERS ====================
+  // ═══════════════════════════════════════════════════════════════
+  //  USERS
+  // ═══════════════════════════════════════════════════════════════
+
   Future<UserModel?> getUser(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
     if (!doc.exists) return null;
@@ -266,13 +295,18 @@ class FirestoreService {
   Future<List<UserModel>> getAllUsers() async {
     try {
       final snapshot = await _db.collection('users').get();
-      return snapshot.docs.map((doc) => UserModel.fromJson(doc.data())).toList();
+      return snapshot.docs
+          .map((doc) => UserModel.fromJson(doc.data()))
+          .toList();
     } catch (e) {
       return [];
     }
   }
 
-  // ==================== ADMIN STATS ====================
+  // ═══════════════════════════════════════════════════════════════
+  //  ADMIN STATS
+  // ═══════════════════════════════════════════════════════════════
+
   Future<Map<String, dynamic>> getAdminStats() async {
     try {
       final usersSnap = await _db.collection('users').get();
@@ -287,7 +321,8 @@ class FirestoreService {
       final ordersSnap = await _db.collection('orders').get();
       int totalOrders = ordersSnap.docs.length;
 
-      final openJobsSnap = await _db.collection('jobs').where('status', isEqualTo: 'open').get();
+      final openJobsSnap =
+          await _db.collection('jobs').where('status', isEqualTo: 'open').get();
       int openJobs = openJobsSnap.docs.length;
 
       double revenue = 0;
@@ -306,7 +341,14 @@ class FirestoreService {
         'total_value': revenue,
       };
     } catch (e) {
-      return {'farmers': 0, 'buyers': 0, 'workers': 0, 'orders': 0, 'open_jobs': 0, 'total_value': 0.0};
+      return {
+        'farmers': 0,
+        'buyers': 0,
+        'workers': 0,
+        'orders': 0,
+        'open_jobs': 0,
+        'total_value': 0.0,
+      };
     }
   }
 }

@@ -21,6 +21,7 @@ void main() async {
 
 class KrishiLinkApp extends StatelessWidget {
   final Locale initialLocale;
+
   const KrishiLinkApp({super.key, required this.initialLocale});
 
   @override

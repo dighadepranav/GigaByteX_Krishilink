@@ -36,8 +36,11 @@ class ThemeProvider extends ChangeNotifier {
           brightness: Brightness.light,
           primary: _primaryGreen,
           secondary: _lightGreen,
-          surface: const Color(0xFFF5F7F0),
+          surface: Colors.white,
+          background: const Color(0xFFF5F7F0),
         ),
+
+        // ── AppBar ──
         appBarTheme: const AppBarTheme(
           elevation: 0,
           centerTitle: false,
@@ -50,12 +53,15 @@ class ThemeProvider extends ChangeNotifier {
             fontFamily: 'Poppins',
           ),
         ),
+
+        // ── ElevatedButton ── ✅ foregroundColor always set to avoid invisible text
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: _primaryGreen,
             foregroundColor: Colors.white,
+            // ✅ Text always white on green buttons
             elevation: 2,
-            shadowColor: _primaryGreen.withValues(alpha: 0.3),
+            shadowColor: _primaryGreen.withOpacity(0.3),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: const TextStyle(
@@ -67,6 +73,8 @@ class ThemeProvider extends ChangeNotifier {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           ),
         ),
+
+        // ── OutlinedButton ──
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: _primaryGreen,
@@ -78,6 +86,8 @@ class ThemeProvider extends ChangeNotifier {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           ),
         ),
+
+        // ── TextButton ──
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: _primaryGreen,
@@ -85,13 +95,17 @@ class ThemeProvider extends ChangeNotifier {
                 fontWeight: FontWeight.w600, fontFamily: 'Poppins'),
           ),
         ),
+
+        // ── Card ──
         cardTheme: CardThemeData(
           elevation: 3,
-          shadowColor: Colors.black.withValues(alpha: 0.08),
+          shadowColor: Colors.black.withOpacity(0.08),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           color: Colors.white,
         ),
+
+        // ── Input ──
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -111,6 +125,8 @@ class ThemeProvider extends ChangeNotifier {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
+
+        // ── BottomNavBar ──
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: Colors.white,
           selectedItemColor: _primaryGreen,
@@ -120,13 +136,19 @@ class ThemeProvider extends ChangeNotifier {
           elevation: 12,
           type: BottomNavigationBarType.fixed,
         ),
+
+        // ── FloatingActionButton ──
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: _primaryGreen,
           foregroundColor: Colors.white,
           elevation: 4,
         ),
+
+        // ── Divider ──
         dividerTheme:
             const DividerThemeData(color: Color(0xFFEEEEEE), thickness: 1),
+
+        // ── Typography ──
         textTheme: const TextTheme(
           headlineLarge: TextStyle(
               fontSize: 28,
@@ -148,6 +170,7 @@ class ThemeProvider extends ChangeNotifier {
           bodyMedium: TextStyle(fontSize: 14, color: Color(0xFF555555)),
           bodySmall: TextStyle(fontSize: 12, color: Color(0xFF888888)),
         ),
+
         scaffoldBackgroundColor: const Color(0xFFF5F7F0),
         fontFamily: 'Poppins',
       );
@@ -171,7 +194,7 @@ class ThemeProvider extends ChangeNotifier {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: _lightGreen,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.white, // ✅ Also set in dark mode
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: const TextStyle(

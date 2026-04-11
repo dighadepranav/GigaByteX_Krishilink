@@ -128,10 +128,15 @@ class _LoginScreenState extends State<LoginScreen> {
     };
   }
 
+  // ── Admin Login ──────────────────────────────────────────────────────────
   Future<void> _adminLogin() async {
+    final l10n = AppLocalizations.of(context);
     if (_adminUserCtrl.text.trim() != 'admin' ||
         _adminPassCtrl.text.trim() != 'admin') {
-      _snack('Invalid credentials. Use admin / admin', isError: true);
+      _snack(
+          l10n?.translate('invalid_admin_credentials') ??
+              'Invalid credentials. Use admin / admin',
+          isError: true);
       return;
     }
     setState(() => _isLoading = true);
@@ -146,10 +151,15 @@ class _LoginScreenState extends State<LoginScreen> {
         context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
   }
 
+  // ── Send OTP ─────────────────────────────────────────────────────────────
   Future<void> _sendOtp() async {
+    final l10n = AppLocalizations.of(context);
     final phone = _phoneController.text.trim();
     if (phone.length < 10) {
-      _snack('Enter a valid 10-digit phone number', isError: true);
+      _snack(
+          l10n?.translate('invalid_phone') ??
+              'Enter a valid 10-digit phone number',
+          isError: true);
       return;
     }
     setState(() => _isLoading = true);
@@ -162,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _isOtpSent = true;
           _isLoading = false;
         });
-        _snack('OTP sent! Check your SMS.');
+        _snack(l10n?.translate('otp_sent_sms') ?? 'OTP sent! Check your SMS.');
       },
       onError: (error) {
         if (!mounted) return;
@@ -172,13 +182,19 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ── Verify OTP ───────────────────────────────────────────────────────────
   Future<void> _verifyOtp() async {
+    final l10n = AppLocalizations.of(context);
     if (_otpController.text.trim().length < 6) {
-      _snack('Enter the 6-digit OTP', isError: true);
+      _snack(l10n?.translate('enter_6_digit_otp') ?? 'Enter the 6-digit OTP',
+          isError: true);
       return;
     }
     if (_nameController.text.trim().isEmpty) {
-      _snack('Please enter your full name', isError: true);
+      _snack(
+          l10n?.translate('please_enter_full_name') ??
+              'Please enter your full name',
+          isError: true);
       return;
     }
     setState(() => _isLoading = true);
@@ -192,6 +208,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         final firebaseUser = FirebaseAuth.instance.currentUser!;
         final prefs = await SharedPreferences.getInstance();
+        // FIX: Store uid_role as the key so Firestore lookups match
+        // the uid_role document created in firebase_auth_service.dart.
+        // This allows the same phone number to have separate profiles
+        // per role (farmer, buyer, worker).
         await prefs.setString('userUid', '${firebaseUser.uid}_${user.role}');
         await prefs.setInt('userId', user.id);
         await prefs.setString('userPhone', user.phone);
@@ -211,15 +231,21 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // ── Complete login after location selection ───────────────────────────────
   Future<void> _completeLogin() async {
+    final l10n = AppLocalizations.of(context);
     if (_selectedLocation.isEmpty) {
-      _snack('Please select your location', isError: true);
+      _snack(
+          l10n?.translate('please_select_location') ??
+              'Please select your location',
+          isError: true);
       return;
     }
     setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userLocation', _selectedLocation);
 
+    // Update location in Firestore too
     final uid = prefs.getString('userUid') ?? '';
     if (uid.isNotEmpty && uid != 'admin_uid') {
       await _firestoreService.updateUserLocation(uid, _selectedLocation);
@@ -277,254 +303,267 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    colors: roleGrad,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight),
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(32)),
+        child: Column(children: [
+          // ── Hero Header ──────────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  colors: roleGrad,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
+              borderRadius:
+                  const BorderRadius.vertical(bottom: Radius.circular(32)),
+            ),
+            child: Column(children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const LandingScreen())),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.white, size: 16),
+                  ),
+                ),
               ),
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const LandingScreen())),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.arrow_back_ios_new,
-                            color: Colors.white, size: 16),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle),
+                child: Icon(meta['icon'] as IconData,
+                    size: 44, color: Colors.white),
+              ),
+              const SizedBox(height: 14),
+              Text(l10n?.translate('app_name') ?? 'KrishiLink',
+                  style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1)),
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20)),
+                child: Text('${meta['emoji']}  ${meta['label']} Login',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14)),
+              ),
+              const SizedBox(height: 10),
+              Text(meta['hint'] as String,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ]),
+          ),
+
+          // ── Form ─────────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isAdmin) ...[
+                  Text(
+                      l10n?.translate('admin_credentials') ??
+                          'Admin Credentials',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: roleColor)),
+                  const SizedBox(height: 16),
+                  _field(_adminUserCtrl, 'Username', Icons.person_rounded,
+                      roleColor),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _adminPassCtrl,
+                    obscureText: _obscurePass,
+                    decoration: InputDecoration(
+                      labelText: l10n?.translate('password') ?? 'Password',
+                      prefixIcon: const Icon(Icons.lock_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePass
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () =>
+                            setState(() => _obscurePass = !_obscurePass),
+                      ),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: roleColor, width: 2),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  CustomButton(
+                    text: l10n?.translate('login_as_admin') ?? 'Login as Admin',
+                    onPressed: _adminLogin,
+                    isLoading: _isLoading,
+                    backgroundColor: roleColor,
+                    icon: Icons.admin_panel_settings_rounded,
+                  ),
+                ] else if (_isLocationStep) ...[
+                  Text(
+                      l10n?.translate('select_your_location') ??
+                          'Select Your Location',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: roleColor)),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Helps connect you with nearby '
+                    '${_selectedRole == 'farmer' ? 'buyers' : _selectedRole == 'buyer' ? 'farmers' : 'farm jobs'}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 20),
                   Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle),
-                    child: Icon(meta['icon'] as IconData,
-                        size: 44, color: Colors.white),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(l10n?.translate('app_name') ?? 'KrishiLink',
-                      style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1)),
-                  const SizedBox(height: 6),
-                  Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20)),
-                    child: Text('${meta['emoji']}  ${meta['label']} Login',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14)),
+                      border: Border.all(
+                          color: _selectedLocation.isEmpty
+                              ? Colors.grey.shade400
+                              : roleColor,
+                          width: _selectedLocation.isEmpty ? 1 : 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButton<String>(
+                      value:
+                          _selectedLocation.isEmpty ? null : _selectedLocation,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      hint: Row(children: [
+                        Icon(Icons.location_on_rounded,
+                            color: Colors.grey.shade500, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                            l10n?.translate('select_city_district') ??
+                                'Select your city / district',
+                            style: TextStyle(
+                                color: Colors.grey.shade500, fontSize: 14)),
+                      ]),
+                      icon: Icon(Icons.keyboard_arrow_down_rounded,
+                          color: roleColor),
+                      items: _indianLocations
+                          .map((loc) => DropdownMenuItem(
+                                value: loc,
+                                child: Text(loc,
+                                    style: const TextStyle(fontSize: 14)),
+                              ))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => _selectedLocation = val ?? ''),
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(meta['hint'] as String,
-                      textAlign: TextAlign.center,
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 12)),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isAdmin) ...[
-                    Text('Admin Credentials',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: roleColor)),
-                    const SizedBox(height: 16),
-                    _field(_adminUserCtrl, 'Username', Icons.person_rounded,
+                  const SizedBox(height: 24),
+                  CustomButton(
+                    text: l10n?.translate('continue_to_dashboard') ??
+                        'Continue to Dashboard',
+                    onPressed: _completeLogin,
+                    isLoading: _isLoading,
+                    backgroundColor: roleColor,
+                    icon: Icons.arrow_forward_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () => setState(() => _isLocationStep = false),
+                    icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                    label: Text(l10n?.translate('go_back') ?? 'Go Back'),
+                    style: TextButton.styleFrom(foregroundColor: roleColor),
+                  ),
+                ] else ...[
+                  Text(_isOtpSent ? 'Verify Your Number' : 'Enter Phone Number',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: roleColor)),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    enabled: !_isOtpSent,
+                    maxLength: 10,
+                    decoration: InputDecoration(
+                      labelText:
+                          l10n?.translate('phone_number') ?? 'Mobile Number',
+                      hintText: l10n?.translate('ten_digit_number') ??
+                          '10-digit number',
+                      prefixIcon: const Icon(Icons.phone_rounded),
+                      prefixText: '+91  ',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: roleColor, width: 2),
+                      ),
+                      counterText: '',
+                      suffixIcon: _isOtpSent
+                          ? TextButton(
+                              onPressed: () =>
+                                  setState(() => _isOtpSent = false),
+                              child: Text(l10n?.translate('change') ?? 'Change',
+                                  style: TextStyle(fontSize: 12)))
+                          : null,
+                    ),
+                  ),
+                  if (_isOtpSent) ...[
+                    const SizedBox(height: 14),
+                    _field(_nameController, 'Full Name', Icons.person_rounded,
                         roleColor),
                     const SizedBox(height: 14),
                     TextFormField(
-                      controller: _adminPassCtrl,
-                      obscureText: _obscurePass,
+                      controller: _otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: l10n?.translate('enter_otp') ?? 'OTP',
+                        hintText: l10n?.translate('otp_sms_hint') ??
+                            '6-digit OTP from SMS',
                         prefixIcon: const Icon(Icons.lock_rounded),
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscurePass
-                              ? Icons.visibility
-                              : Icons.visibility_off),
-                          onPressed: () =>
-                              setState(() => _obscurePass = !_obscurePass),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: roleColor, width: 2),
                         ),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: roleColor, width: 2)),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    CustomButton(
-                        text: 'Login as Admin',
-                        onPressed: _adminLogin,
-                        isLoading: _isLoading,
-                        backgroundColor: roleColor,
-                        icon: Icons.admin_panel_settings_rounded),
-                  ] else if (_isLocationStep) ...[
-                    Text('Select Your Location',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: roleColor)),
-                    const SizedBox(height: 6),
-                    Text(
-                        'Helps connect you with nearby ${_selectedRole == 'farmer' ? 'buyers' : _selectedRole == 'buyer' ? 'farmers' : 'farm jobs'}',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade600)),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 4),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                            color: _selectedLocation.isEmpty
-                                ? Colors.grey.shade400
-                                : roleColor,
-                            width: _selectedLocation.isEmpty ? 1 : 2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: DropdownButton<String>(
-                        value: _selectedLocation.isEmpty
-                            ? null
-                            : _selectedLocation,
-                        isExpanded: true,
-                        underline: const SizedBox(),
-                        hint: Row(children: [
-                          Icon(Icons.location_on_rounded,
-                              color: Colors.grey.shade500, size: 20),
-                          const SizedBox(width: 8),
-                          Text('Select your city / district',
-                              style: TextStyle(
-                                  color: Colors.grey.shade500, fontSize: 14)),
-                        ]),
-                        icon: Icon(Icons.keyboard_arrow_down_rounded,
-                            color: roleColor),
-                        items: _indianLocations
-                            .map((loc) => DropdownMenuItem(
-                                value: loc,
-                                child: Text(loc,
-                                    style: const TextStyle(fontSize: 14))))
-                            .toList(),
-                        onChanged: (val) =>
-                            setState(() => _selectedLocation = val ?? ''),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    CustomButton(
-                        text: 'Continue to Dashboard',
-                        onPressed: _completeLogin,
-                        isLoading: _isLoading,
-                        backgroundColor: roleColor,
-                        icon: Icons.arrow_forward_rounded),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                        onPressed: () =>
-                            setState(() => _isLocationStep = false),
-                        icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                        label: const Text('Go Back'),
-                        style:
-                            TextButton.styleFrom(foregroundColor: roleColor)),
-                  ] else ...[
-                    Text(
-                        _isOtpSent
-                            ? 'Verify Your Number'
-                            : 'Enter Phone Number',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: roleColor)),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      enabled: !_isOtpSent,
-                      maxLength: 10,
-                      decoration: InputDecoration(
-                        labelText: 'Mobile Number',
-                        hintText: '10-digit number',
-                        prefixIcon: const Icon(Icons.phone_rounded),
-                        prefixText: '+91  ',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: roleColor, width: 2)),
                         counterText: '',
-                        suffixIcon: _isOtpSent
-                            ? TextButton(
-                                onPressed: () =>
-                                    setState(() => _isOtpSent = false),
-                                child: const Text('Change',
-                                    style: TextStyle(fontSize: 12)))
-                            : null,
                       ),
                     ),
-                    if (_isOtpSent) ...[
-                      const SizedBox(height: 14),
-                      _field(_nameController, 'Full Name', Icons.person_rounded,
-                          roleColor),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _otpController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 6,
-                        decoration: InputDecoration(
-                          labelText: 'OTP',
-                          hintText: '6-digit OTP from SMS',
-                          prefixIcon: const Icon(Icons.lock_rounded),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  BorderSide(color: roleColor, width: 2)),
-                          counterText: '',
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    CustomButton(
-                        text: _isOtpSent ? 'Verify & Continue' : 'Send OTP',
-                        onPressed: _isOtpSent ? _verifyOtp : _sendOtp,
-                        isLoading: _isLoading,
-                        backgroundColor: roleColor,
-                        icon: _isOtpSent
-                            ? Icons.arrow_forward_rounded
-                            : Icons.send_rounded),
                   ],
+                  const SizedBox(height: 24),
+                  CustomButton(
+                    text: _isOtpSent
+                        ? (l10n?.translate('verify_continue') ??
+                            'Verify and Continue')
+                        : (l10n?.translate('send_otp') ?? 'Send OTP'),
+                    onPressed: _isOtpSent ? _verifyOtp : _sendOtp,
+                    isLoading: _isLoading,
+                    backgroundColor: roleColor,
+                    icon: _isOtpSent
+                        ? Icons.arrow_forward_rounded
+                        : Icons.send_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                  _roleInfoCard(meta, roleColor),
                 ],
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ]),
       ),
     );
   }
@@ -538,9 +577,69 @@ class _LoginScreenState extends State<LoginScreen> {
         prefixIcon: Icon(icon),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: roleColor, width: 2)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: roleColor, width: 2),
+        ),
       ),
     );
+  }
+
+  Widget _roleInfoCard(Map<String, dynamic> meta, Color roleColor) {
+    final features = _roleFeatures(_selectedRole);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: roleColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: roleColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${meta['label']} Features',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: roleColor, fontSize: 13)),
+          const SizedBox(height: 6),
+          ...features.map((f) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(children: [
+                  Icon(Icons.check_circle_outline, size: 14, color: roleColor),
+                  const SizedBox(width: 6),
+                  Text(f,
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                ]),
+              )),
+        ],
+      ),
+    );
+  }
+
+  List<String> _roleFeatures(String role) {
+    switch (role) {
+      case 'farmer':
+        return [
+          'List & manage your crops',
+          'Set your own prices',
+          'Receive & manage orders',
+          'Post farm job openings',
+        ];
+      case 'buyer':
+        return [
+          'Browse fresh produce',
+          'Buy directly from farmers',
+          'Track your orders live',
+          'No middlemen — better prices',
+        ];
+      case 'worker':
+        return [
+          'Browse farm jobs near you',
+          'Apply with one tap',
+          'View wages before applying',
+          'Flexible duration jobs',
+        ];
+      default:
+        return [];
+    }
   }
 }

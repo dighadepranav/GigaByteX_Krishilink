@@ -17,14 +17,15 @@ class OrderModel {
   final String unit;
   final double price;
   final double totalAmount;
-  final String status;         // pending | confirmed | rejected | delivered | cancelled
-  final String trackingStatus; // harvested | packed | in_transit | out_for_delivery | delivered
+  final String status; // pending | confirmed | rejected | delivered | cancelled
+  final String
+      trackingStatus; // harvested | packed | in_transit | out_for_delivery | delivered
   final DateTime orderDate;
   final DateTime? deliveredDate;
   final String? deliveryAddress; // buyer's location (city)
-  final String? farmerLocation;  // farmer's location (city)
-  final String? paymentMethod;   // 'cod' or 'upi'
-  final String? upiId;           // UPI ID if paymentMethod == 'upi'
+  final String? farmerLocation; // farmer's location (city)
+  final String? paymentMethod; // 'cod' or 'upi'
+  final String? upiId; // UPI ID if paymentMethod == 'upi'
 
   OrderModel({
     this.docId = '',
@@ -199,19 +200,29 @@ class OrderModel {
   }
 
   bool get isPending => status == 'pending';
+
   bool get isConfirmed => status == 'confirmed';
+
   bool get isRejected => status == 'rejected';
+
   bool get isCancelled => status == 'cancelled';
+
   bool get isDelivered => status == 'delivered';
 
   String get trackingLabel {
     switch (trackingStatus) {
-      case 'harvested': return 'Harvested';
-      case 'packed': return 'Packed';
-      case 'in_transit': return 'In Transit';
-      case 'out_for_delivery': return 'Out for Delivery';
-      case 'delivered': return 'Delivered';
-      default: return 'Processing';
+      case 'harvested':
+        return 'Harvested';
+      case 'packed':
+        return 'Packed';
+      case 'in_transit':
+        return 'In Transit';
+      case 'out_for_delivery':
+        return 'Out for Delivery';
+      case 'delivered':
+        return 'Delivered';
+      default:
+        return 'Processing';
     }
   }
 
