@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_service.dart';
 import '../models/product_model.dart';
 import '../models/order_model.dart';
@@ -26,6 +27,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   List<ProductModel> _products = [];
   String _buyerUid = '';
   String _buyerName = '';
+  String _buyerPhone = '';
   String _buyerLocation = 'India';
   bool _isProcessing = false;
 
@@ -74,6 +76,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       _buyerUid = prefs.getString('userUid') ?? '';
       _buyerLocation = prefs.getString('userLocation') ?? 'India';
       _buyerName = prefs.getString('userName') ?? 'Buyer';
+      _buyerPhone = prefs.getString('userPhone') ?? '';
     });
   }
 
@@ -126,6 +129,25 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   double get _totalCartAmount => _cart.fold(
       0.0, (s, c) => s + ((c['price'] as double) * (c['qty'] as int)));
 
+  Future<Map<String, String?>> _getFarmerDetails(String farmerUid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(farmerUid)
+          .get();
+      if (doc.exists) {
+        final data = doc.data();
+        return {
+          'location': data?['location'] as String?,
+          'phone': data?['phone'] as String?,
+        };
+      }
+    } catch (e) {
+      print('Error fetching farmer details: $e');
+    }
+    return {'location': null, 'phone': null};
+  }
+
   Future<String?> _showPaymentMethodDialog() async {
     final l10n = AppLocalizations.of(context);
     String? selected = 'cod';
@@ -139,19 +161,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           builder: (context, setStateDialog) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              RadioListTile<String>(
+              RadioListTile(
                 title: Text(
                     l10n?.translate('cash_on_delivery') ?? 'Cash on Delivery'),
                 value: 'cod',
                 groupValue: selected,
-                onChanged: (val) => setStateDialog(() => selected = val!),
+                onChanged: (val) => setStateDialog(() => selected = val),
               ),
-              RadioListTile<String>(
+              RadioListTile(
                 title: Text(l10n?.translate('upi_method') ??
                     'UPI (PhonePe / Google Pay)'),
                 value: 'upi',
                 groupValue: selected,
-                onChanged: (val) => setStateDialog(() => selected = val!),
+                onChanged: (val) => setStateDialog(() => selected = val),
               ),
             ],
           ),
@@ -236,7 +258,20 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     final prefs = await SharedPreferences.getInstance();
     final buyerLocation = prefs.getString('userLocation') ?? 'India';
 
+    // Get unique farmer UIDs from cart
+    final farmerUids = _cart.map((item) => item['farmerUid'] as String).toSet();
+    final farmerDetailsMap = <String, Map<String, String?>>{};
+    for (final uid in farmerUids) {
+      final details = await _getFarmerDetails(uid);
+      farmerDetailsMap[uid] = details;
+    }
+
     for (var item in _cart) {
+      final farmerUid = item['farmerUid'] ?? '';
+      final farmerDetails = farmerDetailsMap[farmerUid] ?? {};
+      final farmerLocation = farmerDetails['location'] ?? 'Unknown';
+      final farmerPhone = farmerDetails['phone'] ?? '';
+
       final order = OrderModel(
         id: 0,
         productDocId: item['docId'] ?? '',
@@ -244,11 +279,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         buyerUid: _buyerUid,
         buyerId: 0,
         buyerName: _buyerName,
-        buyerPhone: '',
-        farmerUid: item['farmerUid'] ?? '',
+        buyerPhone: _buyerPhone,
+        farmerUid: farmerUid,
         farmerId: item['farmerId'] ?? 0,
         farmerName: item['farmerName'],
-        farmerPhone: '',
+        farmerPhone: farmerPhone,
         quantity: (item['qty'] as int).toDouble(),
         unit: item['unit'],
         price: (item['price'] as double),
@@ -258,13 +293,20 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         orderDate: DateTime.now(),
         deliveredDate: null,
         deliveryAddress: buyerLocation,
-        farmerLocation: null,
+        farmerLocation: farmerLocation,
         paymentMethod: paymentMethod,
         upiId: upiId,
       );
       await FirestoreService().placeOrder(
-          order, _buyerUid, item['farmerUid'] ?? '',
-          paymentMethod: paymentMethod, upiId: upiId);
+        order,
+        _buyerUid,
+        farmerUid,
+        paymentMethod: paymentMethod,
+        upiId: upiId,
+        farmerLocation: farmerLocation,
+        buyerPhone: _buyerPhone,
+        farmerPhone: farmerPhone,
+      );
     }
     setState(() => _cart.clear());
   }
@@ -443,7 +485,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-            color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+            color: const Color(0xFF2E7D32).withOpacity(0.1),
             borderRadius: BorderRadius.circular(6)),
         child: Icon(icon, size: 16, color: const Color(0xFF2E7D32)),
       ),
@@ -505,7 +547,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     hintStyle: const TextStyle(color: Colors.white60),
                     prefixIcon: const Icon(Icons.search, color: Colors.white60),
                     filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.15),
+                    fillColor: Colors.white.withOpacity(0.15),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none),
@@ -530,7 +572,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           decoration: BoxDecoration(
                               color: selected
                                   ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.15),
+                                  : Colors.white.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(20)),
                           child: Text(
                             cat == 'All'
@@ -579,7 +621,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
+                                  color: Colors.black.withOpacity(0.06),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2))
                             ]),

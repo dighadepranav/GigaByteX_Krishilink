@@ -43,10 +43,7 @@ class FirestoreService {
   }
 
   Future<void> updateProduct(ProductModel product) async {
-    await _db
-        .collection('products')
-        .doc(product.docId)
-        .update(product.toFirestore());
+    await _db.collection('products').doc(product.docId).update(product.toFirestore());
   }
 
   Future<void> deleteProduct(String docId) async {
@@ -62,8 +59,8 @@ class FirestoreService {
         .map((s) {
       final list = s.docs.map((d) => OrderModel.fromFirestore(d)).toList();
       list.sort((a, b) {
-        final aDate = a.orderDate;
-        final bDate = b.orderDate;
+        final aDate = a.orderDate ?? DateTime(2000);
+        final bDate = b.orderDate ?? DateTime(2000);
         return bDate.compareTo(aDate);
       });
       return list;
@@ -78,16 +75,17 @@ class FirestoreService {
         .map((s) {
       final list = s.docs.map((d) => OrderModel.fromFirestore(d)).toList();
       list.sort((a, b) {
-        final aDate = a.orderDate;
-        final bDate = b.orderDate;
+        final aDate = a.orderDate ?? DateTime(2000);
+        final bDate = b.orderDate ?? DateTime(2000);
         return bDate.compareTo(aDate);
       });
       return list;
     });
   }
 
-  Future<String> placeOrder(OrderModel order, String buyerUid, String farmerUid,
-      {String? paymentMethod, String? upiId}) async {
+  Future<String> placeOrder(
+      OrderModel order, String buyerUid, String farmerUid,
+      {String? paymentMethod, String? upiId, String? farmerLocation, String? buyerPhone, String? farmerPhone}) async {
     final ref = _db.collection('orders').doc();
     await ref.set({
       ...order.toFirestore(),
@@ -97,12 +95,14 @@ class FirestoreService {
       'orderDate': FieldValue.serverTimestamp(),
       'paymentMethod': paymentMethod,
       'upiId': upiId,
+      'farmerLocation': farmerLocation,
+      'buyerPhone': buyerPhone,
+      'farmerPhone': farmerPhone,
     });
     return ref.id;
   }
 
-  Future<void> updateOrderStatus(
-      String docId, String status, String trackingStatus) async {
+  Future<void> updateOrderStatus(String docId, String status, String trackingStatus) async {
     final Map<String, dynamic> update = {
       'status': status,
       'trackingStatus': trackingStatus,
@@ -120,6 +120,29 @@ class FirestoreService {
       'trackingStatus': 'cancelled',
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  // Auto‑deliver orders after 3 days (called from dashboard initState)
+  Future<void> checkAndAutoDeliverOrders(String uid, String role) async {
+    final now = DateTime.now();
+    final ordersQuery = _db.collection('orders').where(
+      role == 'buyer' ? 'buyerUid' : 'farmerUid',
+      isEqualTo: uid,
+    );
+    final snapshot = await ordersQuery.get();
+    for (final doc in snapshot.docs) {
+      final order = OrderModel.fromFirestore(doc);
+      if (order.status != 'delivered' && order.status != 'cancelled' && order.status != 'rejected') {
+        final estimatedDate = order.orderDate.add(const Duration(days: 3));
+        if (estimatedDate.isBefore(now) || estimatedDate.isAtSameMomentAs(now)) {
+          await doc.reference.update({
+            'status': 'delivered',
+            'trackingStatus': 'delivered',
+            'deliveredDate': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    }
   }
 
   // ==================== JOBS ====================
@@ -158,10 +181,7 @@ class FirestoreService {
   }
 
   Future<void> deleteJob(String jobDocId) async {
-    final apps = await _db
-        .collection('jobApplications')
-        .where('jobDocId', isEqualTo: jobDocId)
-        .get();
+    final apps = await _db.collection('jobApplications').where('jobDocId', isEqualTo: jobDocId).get();
     for (final app in apps.docs) {
       await app.reference.delete();
     }
@@ -198,45 +218,38 @@ class FirestoreService {
         .where('jobDocId', isEqualTo: jobDocId)
         .snapshots()
         .map((s) => s.docs.map((d) {
-              final data = d.data();
-              return {
-                'docId': d.id,
-                'workerName': data['workerName'] ?? 'Worker',
-                'workerPhone': data['workerPhone'] ?? '',
-                'status': data['status'] ?? 'pending',
-                'appliedAt': data['appliedAt'],
-              };
-            }).toList());
+      final data = d.data();
+      return {
+        'docId': d.id,
+        'workerName': data['workerName'] ?? 'Worker',
+        'workerPhone': data['workerPhone'] ?? '',
+        'status': data['status'] ?? 'pending',
+        'appliedAt': data['appliedAt'],
+      };
+    }).toList());
   }
 
   Future<void> updateApplicationStatus(String appDocId, String status) async {
-    await _db
-        .collection('jobApplications')
-        .doc(appDocId)
-        .update({'status': status});
+    await _db.collection('jobApplications').doc(appDocId).update({'status': status});
   }
 
-  // Old method for backward compatibility
   Stream<Set<String>> streamUserApplications(String workerUid) {
     return _db
         .collection('jobApplications')
         .where('workerUid', isEqualTo: workerUid)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => doc['jobDocId'] as String).toSet());
+        .map((snapshot) => snapshot.docs.map((doc) => doc['jobDocId'] as String).toSet());
   }
 
-  // NEW: Stream of jobId -> status for a worker
-  Stream<Map<String, String>> streamUserApplicationsWithStatus(
-      String workerUid) {
+  Stream<Map<String, String>> streamUserApplicationsWithStatus(String workerUid) {
     return _db
         .collection('jobApplications')
         .where('workerUid', isEqualTo: workerUid)
         .snapshots()
         .map((snapshot) => {
-              for (var doc in snapshot.docs)
-                doc['jobDocId'] as String: doc['status'] as String? ?? 'pending'
-            });
+      for (var doc in snapshot.docs)
+        doc['jobDocId'] as String: doc['status'] as String? ?? 'pending'
+    });
   }
 
   // ==================== USERS ====================
@@ -253,9 +266,7 @@ class FirestoreService {
   Future<List<UserModel>> getAllUsers() async {
     try {
       final snapshot = await _db.collection('users').get();
-      return snapshot.docs
-          .map((doc) => UserModel.fromJson(doc.data()))
-          .toList();
+      return snapshot.docs.map((doc) => UserModel.fromJson(doc.data())).toList();
     } catch (e) {
       return [];
     }
@@ -276,8 +287,7 @@ class FirestoreService {
       final ordersSnap = await _db.collection('orders').get();
       int totalOrders = ordersSnap.docs.length;
 
-      final openJobsSnap =
-          await _db.collection('jobs').where('status', isEqualTo: 'open').get();
+      final openJobsSnap = await _db.collection('jobs').where('status', isEqualTo: 'open').get();
       int openJobs = openJobsSnap.docs.length;
 
       double revenue = 0;
@@ -296,14 +306,7 @@ class FirestoreService {
         'total_value': revenue,
       };
     } catch (e) {
-      return {
-        'farmers': 0,
-        'buyers': 0,
-        'workers': 0,
-        'orders': 0,
-        'open_jobs': 0,
-        'total_value': 0.0
-      };
+      return {'farmers': 0, 'buyers': 0, 'workers': 0, 'orders': 0, 'open_jobs': 0, 'total_value': 0.0};
     }
   }
 }
