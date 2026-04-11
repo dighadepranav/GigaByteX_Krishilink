@@ -47,7 +47,7 @@ class FirestoreService {
   }
 
   Future<void> deleteProduct(String docId) async {
-    await _db.collection('products').doc(docId).update({'status': 'discontinued'});
+    await _db.collection('products').doc(docId).delete();
   }
 
   // ==================== ORDERS ====================
@@ -58,7 +58,11 @@ class FirestoreService {
         .snapshots()
         .map((s) {
       final list = s.docs.map((d) => OrderModel.fromFirestore(d)).toList();
-      list.sort((a, b) => b.orderDate.compareTo(a.orderDate));
+      list.sort((a, b) {
+        final aDate = a.orderDate ?? DateTime(2000);
+        final bDate = b.orderDate ?? DateTime(2000);
+        return bDate.compareTo(aDate);
+      });
       return list;
     });
   }
@@ -70,12 +74,18 @@ class FirestoreService {
         .snapshots()
         .map((s) {
       final list = s.docs.map((d) => OrderModel.fromFirestore(d)).toList();
-      list.sort((a, b) => b.orderDate.compareTo(a.orderDate));
+      list.sort((a, b) {
+        final aDate = a.orderDate ?? DateTime(2000);
+        final bDate = b.orderDate ?? DateTime(2000);
+        return bDate.compareTo(aDate);
+      });
       return list;
     });
   }
 
-  Future<String> placeOrder(OrderModel order, String buyerUid, String farmerUid) async {
+  Future<String> placeOrder(
+      OrderModel order, String buyerUid, String farmerUid,
+      {String? paymentMethod, String? upiId}) async {
     final ref = _db.collection('orders').doc();
     await ref.set({
       ...order.toFirestore(),
@@ -83,6 +93,8 @@ class FirestoreService {
       'buyerUid': buyerUid,
       'farmerUid': farmerUid,
       'orderDate': FieldValue.serverTimestamp(),
+      'paymentMethod': paymentMethod,
+      'upiId': upiId,
     });
     return ref.id;
   }
