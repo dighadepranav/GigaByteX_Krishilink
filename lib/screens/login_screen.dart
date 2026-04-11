@@ -302,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(10)),
                         child: const Icon(Icons.arrow_back_ios_new,
                             color: Colors.white, size: 16),
@@ -313,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle),
                     child: Icon(meta['icon'] as IconData,
                         size: 44, color: Colors.white),
@@ -330,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                     decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20)),
                     child: Text('${meta['emoji']}  ${meta['label']} Login',
                         style: const TextStyle(

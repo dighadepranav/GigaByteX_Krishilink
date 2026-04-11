@@ -116,6 +116,44 @@ class ProductModel {
     };
   }
 
+  ProductModel copyWith({
+    String? docId,
+    int? id,
+    String? farmerUid,
+    int? farmerId,
+    String? farmerName,
+    String? name,
+    double? quantity,
+    String? unit,
+    double? price,
+    double? marketPrice,
+    String? description,
+    List<String>? images,
+    String? status,
+    DateTime? createdAt,
+    double? rating,
+    int? totalSold,
+  }) {
+    return ProductModel(
+      docId: docId ?? this.docId,
+      id: id ?? this.id,
+      farmerUid: farmerUid ?? this.farmerUid,
+      farmerId: farmerId ?? this.farmerId,
+      farmerName: farmerName ?? this.farmerName,
+      name: name ?? this.name,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      price: price ?? this.price,
+      marketPrice: marketPrice ?? this.marketPrice,
+      description: description ?? this.description,
+      images: images ?? this.images,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      rating: rating ?? this.rating,
+      totalSold: totalSold ?? this.totalSold,
+    );
+  }
+
   double get savings => marketPrice - price;
 
   double get savingsPercentage =>

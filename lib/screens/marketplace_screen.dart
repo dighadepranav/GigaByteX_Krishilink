@@ -139,19 +139,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           builder: (context, setStateDialog) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              RadioListTile(
+              RadioListTile<String>(
                 title: Text(
                     l10n?.translate('cash_on_delivery') ?? 'Cash on Delivery'),
                 value: 'cod',
                 groupValue: selected,
-                onChanged: (val) => setStateDialog(() => selected = val),
+                onChanged: (val) => setStateDialog(() => selected = val!),
               ),
-              RadioListTile(
+              RadioListTile<String>(
                 title: Text(l10n?.translate('upi_method') ??
                     'UPI (PhonePe / Google Pay)'),
                 value: 'upi',
                 groupValue: selected,
-                onChanged: (val) => setStateDialog(() => selected = val),
+                onChanged: (val) => setStateDialog(() => selected = val!),
               ),
             ],
           ),
@@ -443,7 +443,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-            color: const Color(0xFF2E7D32).withOpacity(0.1),
+            color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6)),
         child: Icon(icon, size: 16, color: const Color(0xFF2E7D32)),
       ),
@@ -505,7 +505,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     hintStyle: const TextStyle(color: Colors.white60),
                     prefixIcon: const Icon(Icons.search, color: Colors.white60),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.15),
+                    fillColor: Colors.white.withValues(alpha: 0.15),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none),
@@ -530,7 +530,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           decoration: BoxDecoration(
                               color: selected
                                   ? Colors.white
-                                  : Colors.white.withOpacity(0.15),
+                                  : Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(20)),
                           child: Text(
                             cat == 'All'
@@ -579,7 +579,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                  color: Colors.black.withOpacity(0.06),
+                                  color: Colors.black.withValues(alpha: 0.06),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2))
                             ]),

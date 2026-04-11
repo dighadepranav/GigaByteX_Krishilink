@@ -275,8 +275,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       isCurved: true,
                       color: kRed,
                       barWidth: 3,
-                      belowBarData:
-                          BarAreaData(show: true, color: kRed.withOpacity(0.1)),
+                      belowBarData: BarAreaData(
+                          show: true, color: kRed.withValues(alpha: 0.1)),
                     ),
                   ],
                 ),
@@ -335,7 +335,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor:
-                              _roleColor(user.role).withOpacity(0.2),
+                              _roleColor(user.role).withValues(alpha: 0.2),
                           child: Icon(_roleIcon(user.role),
                               color: _roleColor(user.role)),
                         ),
@@ -348,7 +348,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                              color: _roleColor(user.role).withOpacity(0.1),
+                              color: _roleColor(user.role).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20)),
                           child: Text(user.role.toUpperCase(),
                               style: TextStyle(
@@ -377,7 +377,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         });
       },
       backgroundColor: Colors.grey.shade200,
-      selectedColor: kRed.withOpacity(0.2),
+      selectedColor: kRed.withValues(alpha: 0.2),
       checkmarkColor: kRed,
       labelStyle: TextStyle(
           color: isSelected ? kRed : Colors.black87,
@@ -463,7 +463,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                  color: kRed.withOpacity(0.3),
+                  color: kRed.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4))
             ],
@@ -472,7 +472,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle),
                 child: const CircleAvatar(
                     radius: 40,
@@ -492,9 +492,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.4))),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.4))),
                 child: const Text('🛡️  Admin',
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold))),
@@ -565,7 +565,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           color: cardColor,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)
           ]),
       child: Column(children: [
         Icon(icon, color: color, size: 22),
@@ -587,14 +587,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
           color: cardColor,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 5)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 5)
           ]),
       child: ListTile(
         onTap: onTap,
         leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 22)),
         title: Text(title,
@@ -615,7 +615,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           color: cardColor,
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 6)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6)
           ]),
       child: Padding(
         padding: const EdgeInsets.all(10),

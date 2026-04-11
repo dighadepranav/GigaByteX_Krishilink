@@ -20,25 +20,6 @@ class FirestoreService {
     });
   }
 
-  Future<void> cancelOrder(String docId) async {
-    await _db.collection('orders').doc(docId).update({
-      'status': 'cancelled',
-      'trackingStatus': 'cancelled',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  Future<void> deleteJob(String jobDocId) async {
-    final apps = await _db
-        .collection('jobApplications')
-        .where('jobDocId', isEqualTo: jobDocId)
-        .get();
-    for (final app in apps.docs) {
-      await app.reference.delete();
-    }
-    await _db.collection('jobs').doc(jobDocId).delete();
-  }
-
   Stream<List<ProductModel>> streamFarmerProducts(String farmerUid) {
     return _db
         .collection('products')
@@ -81,8 +62,8 @@ class FirestoreService {
         .map((s) {
       final list = s.docs.map((d) => OrderModel.fromFirestore(d)).toList();
       list.sort((a, b) {
-        final aDate = a.orderDate ?? DateTime(2000);
-        final bDate = b.orderDate ?? DateTime(2000);
+        final aDate = a.orderDate;
+        final bDate = b.orderDate;
         return bDate.compareTo(aDate);
       });
       return list;
@@ -97,8 +78,8 @@ class FirestoreService {
         .map((s) {
       final list = s.docs.map((d) => OrderModel.fromFirestore(d)).toList();
       list.sort((a, b) {
-        final aDate = a.orderDate ?? DateTime(2000);
-        final bDate = b.orderDate ?? DateTime(2000);
+        final aDate = a.orderDate;
+        final bDate = b.orderDate;
         return bDate.compareTo(aDate);
       });
       return list;
@@ -131,6 +112,14 @@ class FirestoreService {
       update['deliveredDate'] = FieldValue.serverTimestamp();
     }
     await _db.collection('orders').doc(docId).update(update);
+  }
+
+  Future<void> cancelOrder(String docId) async {
+    await _db.collection('orders').doc(docId).update({
+      'status': 'cancelled',
+      'trackingStatus': 'cancelled',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // ==================== JOBS ====================
@@ -166,6 +155,17 @@ class FirestoreService {
       'farmerUid': farmerUid,
       'createdAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> deleteJob(String jobDocId) async {
+    final apps = await _db
+        .collection('jobApplications')
+        .where('jobDocId', isEqualTo: jobDocId)
+        .get();
+    for (final app in apps.docs) {
+      await app.reference.delete();
+    }
+    await _db.collection('jobs').doc(jobDocId).delete();
   }
 
   Future<void> applyForJob({
@@ -216,6 +216,7 @@ class FirestoreService {
         .update({'status': status});
   }
 
+  // Old method for backward compatibility
   Stream<Set<String>> streamUserApplications(String workerUid) {
     return _db
         .collection('jobApplications')
@@ -223,6 +224,19 @@ class FirestoreService {
         .snapshots()
         .map((snapshot) =>
             snapshot.docs.map((doc) => doc['jobDocId'] as String).toSet());
+  }
+
+  // NEW: Stream of jobId -> status for a worker
+  Stream<Map<String, String>> streamUserApplicationsWithStatus(
+      String workerUid) {
+    return _db
+        .collection('jobApplications')
+        .where('workerUid', isEqualTo: workerUid)
+        .snapshots()
+        .map((snapshot) => {
+              for (var doc in snapshot.docs)
+                doc['jobDocId'] as String: doc['status'] as String? ?? 'pending'
+            });
   }
 
   // ==================== USERS ====================

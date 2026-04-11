@@ -112,6 +112,44 @@ class JobModel {
     };
   }
 
+  JobModel copyWith({
+    String? docId,
+    int? id,
+    String? farmerUid,
+    int? farmerId,
+    String? farmerName,
+    String? title,
+    String? description,
+    String? location,
+    double? wage,
+    String? duration,
+    int? workersNeeded,
+    String? status,
+    DateTime? createdAt,
+    int? applicationsCount,
+    bool? isSaved,
+    bool? isApplied,
+  }) {
+    return JobModel(
+      docId: docId ?? this.docId,
+      id: id ?? this.id,
+      farmerUid: farmerUid ?? this.farmerUid,
+      farmerId: farmerId ?? this.farmerId,
+      farmerName: farmerName ?? this.farmerName,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      location: location ?? this.location,
+      wage: wage ?? this.wage,
+      duration: duration ?? this.duration,
+      workersNeeded: workersNeeded ?? this.workersNeeded,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      applicationsCount: applicationsCount ?? this.applicationsCount,
+      isSaved: isSaved ?? this.isSaved,
+      isApplied: isApplied ?? this.isApplied,
+    );
+  }
+
   bool get isOpen => status == 'open';
   String get formattedWage => '₹${wage.toStringAsFixed(0)}/day';
   String get timeAgo {

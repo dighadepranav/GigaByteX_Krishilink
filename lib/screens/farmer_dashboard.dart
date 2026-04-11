@@ -84,9 +84,16 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     _ordersSub?.cancel();
     _jobsSub?.cancel();
 
+    if (mounted) setState(() => _isLoading = true);
+
     _productsSub =
         FirestoreService().streamFarmerProducts(_userUid).listen((products) {
-      if (mounted) setState(() => _products = products);
+      if (mounted) {
+        setState(() {
+          _products = products;
+          _isLoading = false;
+        });
+      }
     });
 
     _ordersSub =
@@ -182,7 +189,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     SizedBox(
                         width: 110,
                         child: DropdownButtonFormField<String>(
-                          value: unit,
+                          initialValue: unit,
                           isExpanded: true,
                           decoration: InputDecoration(
                               labelText: l10n?.translate('unit') ?? 'Unit',
@@ -241,7 +248,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                               status: 'available',
                               createdAt: DateTime.now(),
                             );
-                            setState(() => _isLoading = true);
+                            if (mounted) setState(() => _isLoading = true);
                             try {
                               if (isEdit) {
                                 await FirestoreService()
@@ -250,18 +257,22 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                 await FirestoreService()
                                     .addProduct(newProduct, _userUid);
                               }
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('✅ Product added'),
-                                      backgroundColor: kGreen));
+                              if (context.mounted) Navigator.pop(context);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('✅ Product added'),
+                                        backgroundColor: kGreen));
+                              }
                             } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text('Error: $e'),
-                                      backgroundColor: Colors.red));
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text('Error: $e'),
+                                        backgroundColor: Colors.red));
+                              }
                             } finally {
-                              setState(() => _isLoading = false);
+                              if (mounted) setState(() => _isLoading = false);
                             }
                           }
                         },
@@ -400,21 +411,25 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                               status: 'open',
                               createdAt: DateTime.now(),
                             );
-                            setState(() => _isLoading = true);
+                            if (mounted) setState(() => _isLoading = true);
                             try {
                               await FirestoreService().addJob(job, _userUid);
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Job posted!'),
-                                      backgroundColor: kGreen));
+                              if (context.mounted) Navigator.pop(context);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Job posted!'),
+                                        backgroundColor: kGreen));
+                              }
                             } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text('Error: $e'),
-                                      backgroundColor: Colors.red));
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text('Error: $e'),
+                                        backgroundColor: Colors.red));
+                              }
                             } finally {
-                              setState(() => _isLoading = false);
+                              if (mounted) setState(() => _isLoading = false);
                             }
                           }
                         },
@@ -460,34 +475,42 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
       ),
     );
     if (confirm != true) return;
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
       await FirestoreService().deleteJob(jobDocId);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              l10n?.translate('job_deleted') ?? 'Job deleted successfully'),
-          backgroundColor: Colors.green));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                l10n?.translate('job_deleted') ?? 'Job deleted successfully'),
+            backgroundColor: Colors.green));
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('${l10n?.translate('error_prefix') ?? 'Error'}: $e'),
-          backgroundColor: Colors.red));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${l10n?.translate('error_prefix') ?? 'Error'}: $e'),
+            backgroundColor: Colors.red));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _updateOrderStatus(
       String docId, String status, String trackingStatus) async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
       await FirestoreService().updateOrderStatus(docId, status, trackingStatus);
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order $status'), backgroundColor: kGreen));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Order $status'), backgroundColor: kGreen));
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -495,8 +518,10 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
         final confirm = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
@@ -516,7 +541,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             ],
           ),
         );
-        return confirm == true;
+        if (confirm == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -536,14 +563,20 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           automaticallyImplyLeading: false,
           elevation: 0,
         ),
-        body: IndexedStack(
-          index: _selectedIndex,
+        body: Stack(
           children: [
-            _buildHomeTab(),
-            _buildProductsTab(),
-            _buildOrdersTab(),
-            _buildJobsTab(),
-            _buildProfileTab(),
+            IndexedStack(
+              index: _selectedIndex,
+              children: [
+                _buildHomeTab(),
+                _buildProductsTab(),
+                _buildOrdersTab(),
+                _buildJobsTab(),
+                _buildProfileTab(),
+              ],
+            ),
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator(color: kGreen)),
           ],
         ),
         floatingActionButton: _selectedIndex == 1
@@ -610,7 +643,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
               Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle),
                   child: const Icon(Icons.agriculture_rounded,
                       size: 34, color: Colors.white)),
@@ -792,8 +825,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     child: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(9)),
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(9)),
                         child: const Icon(Icons.edit_rounded,
                             color: Colors.orange, size: 18))),
                 const SizedBox(height: 6),
@@ -804,8 +837,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     child: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(9)),
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(9)),
                         child: const Icon(Icons.delete_outline_rounded,
                             color: Colors.red, size: 18))),
               ]),
@@ -842,9 +875,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                 Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: color.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20)),
                     child: Row(children: [
                       Icon(icon, size: 12, color: color),
                       const SizedBox(width: 4),
@@ -1013,7 +1046,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle),
                 child: const CircleAvatar(
                     radius: 40,
@@ -1041,7 +1074,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20)),
                 child: const Text('🌾  Farmer',
                     style: TextStyle(
@@ -1213,7 +1246,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10)),
                 child: Icon(icon, color: color, size: 22)),
             title: Text(title,
@@ -1232,7 +1265,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withOpacity(0.2))),
+            border: Border.all(color: color.withValues(alpha: 0.2))),
         child: Column(children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(height: 6),
@@ -1240,7 +1273,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
               style: TextStyle(
                   fontSize: 15, fontWeight: FontWeight.bold, color: color)),
           Text(label,
-              style: TextStyle(fontSize: 10, color: color.withOpacity(0.7)))
+              style: TextStyle(
+                  fontSize: 10, color: color.withValues(alpha: 0.7)))
         ]));
   }
 

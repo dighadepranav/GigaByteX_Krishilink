@@ -97,7 +97,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                        color: kGreen.withOpacity(0.3),
+                        color: kGreen.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4))
                   ],
@@ -177,7 +177,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       boxShadow: isCurrent
                           ? [
                               BoxShadow(
-                                  color: activeColor.withOpacity(0.4),
+                                  color: activeColor.withValues(alpha: 0.4),
                                   blurRadius: 8,
                                   spreadRadius: 2)
                             ]
@@ -204,14 +204,14 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: isCurrent
-                          ? activeColor.withOpacity(0.08)
+                          ? activeColor.withValues(alpha: 0.08)
                           : (isDark
                               ? Colors.grey.shade900
                               : Colors.grey.shade50),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                           color: isCurrent
-                              ? activeColor.withOpacity(0.3)
+                              ? activeColor.withValues(alpha: 0.3)
                               : (isDark
                                   ? Colors.grey.shade800
                                   : Colors.grey.shade200)),

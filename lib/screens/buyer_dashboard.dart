@@ -10,6 +10,7 @@ import '../utils/locale_provider.dart';
 import 'marketplace_screen.dart';
 import 'tracking_screen.dart';
 import 'landing_screen.dart';
+import '../widgets/empty_state.dart';
 
 class BuyerDashboard extends StatefulWidget {
   const BuyerDashboard({super.key});
@@ -155,8 +156,10 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
         final confirm = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
@@ -176,7 +179,9 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             ],
           ),
         );
-        return confirm == true;
+        if (confirm == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -374,7 +379,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-          color: isDark ? color.withOpacity(0.2) : color.withOpacity(0.1),
+          color: isDark ? color.withValues(alpha: 0.2) : color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         Icon(icon, color: color, size: 24),
@@ -393,9 +398,14 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
     final l10n = AppLocalizations.of(context);
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
     if (_orders.isEmpty) {
-      return Center(
-          child: Text(l10n?.translate('no_orders') ??
-              'No orders yet. Start shopping!'));
+      return EmptyState(
+        title: l10n?.translate('no_orders') ?? 'No orders yet',
+        message: l10n?.translate('no_orders_msg') ?? 'Start shopping from the marketplace!',
+        icon: Icons.shopping_bag_outlined,
+        onAction: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const MarketplaceScreen())),
+        actionLabel: l10n?.translate('browse_market') ?? 'Browse Market',
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -428,7 +438,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20)),
                 child: Text(_statusLabel(order.status, context),
                     style: TextStyle(
@@ -526,7 +536,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle),
                 child: const CircleAvatar(
                     radius: 40,
@@ -554,7 +564,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20)),
                 child: Text('🛒  ${l10n?.translate('buyer') ?? 'Buyer'}',
                     style: const TextStyle(
@@ -727,7 +737,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10)),
                 child: Icon(icon, color: color, size: 22)),
             title: Text(title,

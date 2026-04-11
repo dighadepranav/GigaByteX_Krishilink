@@ -31,10 +31,10 @@ class CustomButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
           foregroundColor: fgColor,
-          disabledBackgroundColor: bgColor.withOpacity(0.5),
-          disabledForegroundColor: fgColor.withOpacity(0.7),
+          disabledBackgroundColor: bgColor.withValues(alpha: 0.5),
+          disabledForegroundColor: fgColor.withValues(alpha: 0.7),
           elevation: 2,
-          shadowColor: bgColor.withOpacity(0.4),
+          shadowColor: bgColor.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

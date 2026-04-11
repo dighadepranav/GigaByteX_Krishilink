@@ -36,8 +36,7 @@ class ThemeProvider extends ChangeNotifier {
           brightness: Brightness.light,
           primary: _primaryGreen,
           secondary: _lightGreen,
-          surface: Colors.white,
-          background: const Color(0xFFF5F7F0),
+          surface: const Color(0xFFF5F7F0),
         ),
         appBarTheme: const AppBarTheme(
           elevation: 0,
@@ -56,7 +55,7 @@ class ThemeProvider extends ChangeNotifier {
             backgroundColor: _primaryGreen,
             foregroundColor: Colors.white,
             elevation: 2,
-            shadowColor: _primaryGreen.withOpacity(0.3),
+            shadowColor: _primaryGreen.withValues(alpha: 0.3),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: const TextStyle(
@@ -88,7 +87,7 @@ class ThemeProvider extends ChangeNotifier {
         ),
         cardTheme: CardThemeData(
           elevation: 3,
-          shadowColor: Colors.black.withOpacity(0.08),
+          shadowColor: Colors.black.withValues(alpha: 0.08),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           color: Colors.white,
